@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Następne";
+"AX_SKIP_NEXT_TRACK" = "Pomiń następny utwór";
+"AX_UP_NEXT" = "Następne";
+"AX_UP_NEXT_TITLE_ARTIST" = "Następne: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Następne: %1$@";
+"AX_HINT_PLAY_NOW" = "Stuknij dwukrotnie, aby odtworzyć ten utwór teraz";
+"AX_ACTION_SKIP" = "Pomiń";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Odtwórz poprzedni utwór jako następny";
+"AX_ANNOUNCE_SKIPPED" = "Pominięto";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Poprzedni utwór dodano do kolejki";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 zarządza kolejką „Następne” w Apple Music.";

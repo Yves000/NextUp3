@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Berikutnya";
+"AX_SKIP_NEXT_TRACK" = "Lewati lagu berikutnya";
+"AX_UP_NEXT" = "Berikutnya";
+"AX_UP_NEXT_TITLE_ARTIST" = "Berikutnya: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Berikutnya: %1$@";
+"AX_HINT_PLAY_NOW" = "Ketuk dua kali untuk memutar lagu ini sekarang";
+"AX_ACTION_SKIP" = "Lewati";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Putar lagu sebelumnya setelah ini";
+"AX_ANNOUNCE_SKIPPED" = "Dilewati";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Lagu sebelumnya ditambahkan ke antrean";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 mengelola antrean “Berikutnya” di Apple Music.";

@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Další";
+"AX_SKIP_NEXT_TRACK" = "Přeskočit další skladbu";
+"AX_UP_NEXT" = "Další";
+"AX_UP_NEXT_TITLE_ARTIST" = "Další: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Další: %1$@";
+"AX_HINT_PLAY_NOW" = "Poklepáním přehrajete tuto skladbu hned teď";
+"AX_ACTION_SKIP" = "Přeskočit";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Přehrát předchozí skladbu jako další";
+"AX_ANNOUNCE_SKIPPED" = "Přeskočeno";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Předchozí skladba zařazena do fronty";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 spravuje frontu „Další“ v Apple Music.";

@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Επόμενο";
+"AX_SKIP_NEXT_TRACK" = "Παράλειψη επόμενου κομματιού";
+"AX_UP_NEXT" = "Επόμενο";
+"AX_UP_NEXT_TITLE_ARTIST" = "Επόμενο: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Επόμενο: %1$@";
+"AX_HINT_PLAY_NOW" = "Αγγίξτε δύο φορές για άμεση αναπαραγωγή αυτού του κομματιού";
+"AX_ACTION_SKIP" = "Παράλειψη";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Αναπαραγωγή προηγούμενου κομματιού ως επόμενο";
+"AX_ANNOUNCE_SKIPPED" = "Παραλείφθηκε";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Το προηγούμενο κομμάτι προστέθηκε στην ουρά";
+"MUSIC_USAGE_DESCRIPTION" = "Το NextUp 3 διαχειρίζεται την ουρά «Επόμενο» του Apple Music.";

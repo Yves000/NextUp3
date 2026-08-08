@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Seuraavaksi";
+"AX_SKIP_NEXT_TRACK" = "Ohita seuraava kappale";
+"AX_UP_NEXT" = "Seuraavaksi";
+"AX_UP_NEXT_TITLE_ARTIST" = "Seuraavaksi: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Seuraavaksi: %1$@";
+"AX_HINT_PLAY_NOW" = "Toista kappale heti kaksoisnapauttamalla";
+"AX_ACTION_SKIP" = "Ohita";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Toista edellinen kappale seuraavaksi";
+"AX_ANNOUNCE_SKIPPED" = "Ohitettu";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Edellinen kappale lisätty jonoon";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 hallinnoi Apple Musicin Seuraavaksi-jonoa.";

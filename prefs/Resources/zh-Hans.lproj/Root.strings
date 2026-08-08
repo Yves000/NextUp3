@@ -1,0 +1,11 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "在所有位置开启或关闭 NextUp 3。";
+"Enabled" = "启用";
+"Apps" = "App";
+"Choose which apps show the Up Next row." = "选择哪些 App 显示“接下来播放”一栏。";
+"Podcasts" = "播客";
+"Interfaces" = "界面";
+"Choose where the Up Next row appears." = "选择“接下来播放”一栏出现的位置。";
+"Lock Screen" = "锁定屏幕";
+"Dynamic Island" = "灵动岛";
+"Control Center" = "控制中心";

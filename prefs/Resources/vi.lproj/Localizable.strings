@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Tiếp theo";
+"AX_SKIP_NEXT_TRACK" = "Bỏ qua bài hát tiếp theo";
+"AX_UP_NEXT" = "Tiếp theo";
+"AX_UP_NEXT_TITLE_ARTIST" = "Tiếp theo: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Tiếp theo: %1$@";
+"AX_HINT_PLAY_NOW" = "Chạm hai lần để phát bài hát này ngay";
+"AX_ACTION_SKIP" = "Bỏ qua";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Phát bài hát trước đó làm bài tiếp theo";
+"AX_ANNOUNCE_SKIPPED" = "Đã bỏ qua";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Đã thêm bài hát trước đó vào hàng đợi";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 quản lý hàng đợi “Tiếp theo” của Apple Music.";

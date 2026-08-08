@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "すべての場所で NextUp 3 をオン/オフにします。";
+"Enabled" = "有効";
+"Apps" = "アプリ";
+"Choose which apps show the Up Next row." = "「次に再生」の行を表示するアプリを選択します。";
+"Podcasts" = "Podcast";
+"Interfaces" = "インターフェイス";
+"Choose where the Up Next row appears." = "「次に再生」の行を表示する場所を選択します。";
+"Lock Screen" = "ロック画面";
+"Control Center" = "コントロールセンター";

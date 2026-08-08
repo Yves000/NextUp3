@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "מפעיל או מכבה את NextUp 3 בכל מקום.";
+"Enabled" = "מופעל";
+"Apps" = "יישומים";
+"Choose which apps show the Up Next row." = "בחרו אילו יישומים יציגו את שורת ״הבא בתור״.";
+"Podcasts" = "פודקאסטים";
+"Interfaces" = "ממשקים";
+"Choose where the Up Next row appears." = "בחרו היכן תופיע שורת ״הבא בתור״.";
+"Lock Screen" = "מסך הנעילה";
+"Control Center" = "מרכז הבקרה";

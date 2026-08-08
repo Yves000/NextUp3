@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>NextUp 3</string>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Turns NextUp 3 on or off everywhere.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Enabled</string>
+			<key>key</key>
+			<string>Enabled</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.yves.nextup3</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Apps</string>
+			<key>footerText</key>
+			<string>Choose which apps show the Up Next row.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Apple Music</string>
+			<key>key</key>
+			<string>enabledMusic</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.yves.nextup3</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Podcasts</string>
+			<key>key</key>
+			<string>enabledPodcasts</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.yves.nextup3</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>YouTube Music</string>
+			<key>key</key>
+			<string>enabledYouTubeMusic</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.yves.nextup3</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Spotify</string>
+			<key>key</key>
+			<string>enabledSpotify</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.yves.nextup3</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Interfaces</string>
+			<key>footerText</key>
+			<string>Choose where the Up Next row appears.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Lock Screen</string>
+			<key>key</key>
+			<string>showLockScreen</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.yves.nextup3</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Dynamic Island</string>
+			<key>key</key>
+			<string>showDynamicIsland</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.yves.nextup3</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
+			<string>Control Center</string>
+			<key>key</key>
+			<string>showControlCenter</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.yves.nextup3</string>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "接下来播放";
+"AX_SKIP_NEXT_TRACK" = "跳过下一首";
+"AX_UP_NEXT" = "接下来播放";
+"AX_UP_NEXT_TITLE_ARTIST" = "接下来播放：%1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "接下来播放：%1$@";
+"AX_HINT_PLAY_NOW" = "轻点两下以立即播放这首歌曲";
+"AX_ACTION_SKIP" = "跳过";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "接下来播放上一首";
+"AX_ANNOUNCE_SKIPPED" = "已跳过";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "上一首已加入待播清单";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 管理 Apple Music 的待播清单。";

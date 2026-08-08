@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "التالي";
+"AX_SKIP_NEXT_TRACK" = "تخطي الأغنية التالية";
+"AX_UP_NEXT" = "التالي";
+"AX_UP_NEXT_TITLE_ARTIST" = "التالي: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "التالي: %1$@";
+"AX_HINT_PLAY_NOW" = "اضغط مرتين لتشغيل هذه الأغنية الآن";
+"AX_ACTION_SKIP" = "تخطي";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "تشغيل الأغنية السابقة تاليًا";
+"AX_ANNOUNCE_SKIPPED" = "تم التخطي";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "تمت إضافة الأغنية السابقة إلى قائمة الانتظار";
+"MUSIC_USAGE_DESCRIPTION" = "يدير NextUp 3 قائمة انتظار «التالي» في Apple Music.";

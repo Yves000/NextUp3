@@ -1,0 +1,7 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "Schakelt NextUp 3 overal in of uit.";
+"Enabled" = "Ingeschakeld";
+"Choose which apps show the Up Next row." = "Kies welke apps de ‘Hierna’-rij tonen.";
+"Choose where the Up Next row appears." = "Kies waar de ‘Hierna’-rij verschijnt.";
+"Lock Screen" = "Toegangsscherm";
+"Control Center" = "Bedieningspaneel";

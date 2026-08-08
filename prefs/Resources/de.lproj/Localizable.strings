@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Als Nächstes";
+"AX_SKIP_NEXT_TRACK" = "Nächsten Titel überspringen";
+"AX_UP_NEXT" = "Als Nächstes";
+"AX_UP_NEXT_TITLE_ARTIST" = "Als Nächstes: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Als Nächstes: %1$@";
+"AX_HINT_PLAY_NOW" = "Zum sofortigen Abspielen dieses Titels doppeltippen";
+"AX_ACTION_SKIP" = "Überspringen";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Vorherigen Titel als Nächstes abspielen";
+"AX_ANNOUNCE_SKIPPED" = "Übersprungen";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Vorheriger Titel eingereiht";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 verwaltet die Warteliste „Als Nächstes“ von Apple Music.";

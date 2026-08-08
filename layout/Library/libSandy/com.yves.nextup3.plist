@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Process signing identifiers (= bundle ids for normally-installed apps)
+	     allowed to apply this profile. Restricted to the six injected processes so
+	     no other process can obtain register/lookup rights on our service names (a
+	     hostile registrant could otherwise impersonate a provider).
+	     DEBUGGING NOTE: a re-signed app install (TrollStore / sideload) can carry a
+	     DIFFERENT signing identifier than its bundle id — if one app's row silently
+	     never appears, add its real signing identifier here (a DEBUG build logs the
+	     libSandy applyProfile result) or temporarily revert to a single "*". -->
+	<key>AllowedProcesses</key>
+	<array>
+		<string>com.apple.MediaRemoteUI</string>
+		<string>com.apple.Music</string>
+		<string>com.apple.podcasts</string>
+		<string>com.apple.springboard</string>
+		<string>com.google.ios.youtubemusic</string>
+		<string>com.spotify.client</string>
+	</array>
+	<key>Extensions</key>
+	<array>
+		<dict>
+			<key>type</key>
+			<string>mach</string>
+			<key>extension_class</key>
+			<string>com.apple.security.exception.mach-register.global-name</string>
+			<key>mach_name</key>
+			<string>com.yves.nextup3.svc.music</string>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>mach</string>
+			<key>extension_class</key>
+			<string>com.apple.security.exception.mach-lookup.global-name</string>
+			<key>mach_name</key>
+			<string>com.yves.nextup3.svc.music</string>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>mach</string>
+			<key>extension_class</key>
+			<string>com.apple.security.exception.mach-register.global-name</string>
+			<key>mach_name</key>
+			<string>com.yves.nextup3.svc.podcasts</string>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>mach</string>
+			<key>extension_class</key>
+			<string>com.apple.security.exception.mach-lookup.global-name</string>
+			<key>mach_name</key>
+			<string>com.yves.nextup3.svc.podcasts</string>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>mach</string>
+			<key>extension_class</key>
+			<string>com.apple.security.exception.mach-register.global-name</string>
+			<key>mach_name</key>
+			<string>com.yves.nextup3.svc.youtubemusic</string>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>mach</string>
+			<key>extension_class</key>
+			<string>com.apple.security.exception.mach-lookup.global-name</string>
+			<key>mach_name</key>
+			<string>com.yves.nextup3.svc.youtubemusic</string>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>mach</string>
+			<key>extension_class</key>
+			<string>com.apple.security.exception.mach-register.global-name</string>
+			<key>mach_name</key>
+			<string>com.yves.nextup3.svc.spotify</string>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>mach</string>
+			<key>extension_class</key>
+			<string>com.apple.security.exception.mach-lookup.global-name</string>
+			<key>mach_name</key>
+			<string>com.yves.nextup3.svc.spotify</string>
+		</dict>
+	</array>
+</dict>
+</plist>

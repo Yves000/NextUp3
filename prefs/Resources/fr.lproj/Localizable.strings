@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "À suivre";
+"AX_SKIP_NEXT_TRACK" = "Ignorer le morceau suivant";
+"AX_UP_NEXT" = "À suivre";
+"AX_UP_NEXT_TITLE_ARTIST" = "À suivre : %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "À suivre : %1$@";
+"AX_HINT_PLAY_NOW" = "Touchez deux fois pour lire ce morceau maintenant";
+"AX_ACTION_SKIP" = "Ignorer";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Lire le morceau précédent ensuite";
+"AX_ANNOUNCE_SKIPPED" = "Ignoré";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Morceau précédent ajouté à la file d’attente";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 gère la file d’attente « À suivre » d’Apple Music.";

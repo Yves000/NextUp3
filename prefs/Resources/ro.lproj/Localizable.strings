@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Urmează";
+"AX_SKIP_NEXT_TRACK" = "Omiteți melodia următoare";
+"AX_UP_NEXT" = "Urmează";
+"AX_UP_NEXT_TITLE_ARTIST" = "Urmează: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Urmează: %1$@";
+"AX_HINT_PLAY_NOW" = "Apăsați de două ori pentru a reda această melodie acum";
+"AX_ACTION_SKIP" = "Omitere";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Redați melodia anterioară în continuare";
+"AX_ANNOUNCE_SKIPPED" = "Melodie omisă";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Melodia anterioară a fost adăugată în coadă";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 gestionează coada „Urmează” din Apple Music.";

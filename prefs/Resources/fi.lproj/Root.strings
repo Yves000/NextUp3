@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "Ottaa NextUp 3:n käyttöön tai poistaa sen käytöstä kaikkialla.";
+"Enabled" = "Käytössä";
+"Apps" = "Apit";
+"Choose which apps show the Up Next row." = "Valitse, mitkä apit näyttävät Seuraavaksi-rivin.";
+"Podcasts" = "Podcastit";
+"Interfaces" = "Käyttöliittymät";
+"Choose where the Up Next row appears." = "Valitse, missä Seuraavaksi-rivi näkyy.";
+"Lock Screen" = "Lukittu näyttö";
+"Control Center" = "Ohjauskeskus";

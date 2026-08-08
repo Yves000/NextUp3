@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Neste";
+"AX_SKIP_NEXT_TRACK" = "Hopp over neste låt";
+"AX_UP_NEXT" = "Neste";
+"AX_UP_NEXT_TITLE_ARTIST" = "Neste: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Neste: %1$@";
+"AX_HINT_PLAY_NOW" = "Dobbelttrykk for å spille av denne låten nå";
+"AX_ACTION_SKIP" = "Hopp over";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Spill av forrige låt som neste";
+"AX_ANNOUNCE_SKIPPED" = "Hoppet over";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Forrige låt lagt i kø";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 håndterer «Neste»-køen i Apple Music.";

@@ -1,0 +1,69 @@
+name: Bug report
+description: NextUp 3 is missing or misbehaving
+labels: [bug]
+body:
+  - type: input
+    id: ios
+    attributes:
+      label: iOS version and device
+      placeholder: "e.g. iOS 18.7.5, iPad7,11"
+    validations:
+      required: true
+  - type: dropdown
+    id: jailbreak
+    attributes:
+      label: Jailbreak type
+      options:
+        - rootless
+        - roothide
+        - rootful
+    validations:
+      required: true
+  - type: input
+    id: injection
+    attributes:
+      label: Injection platform
+      placeholder: "e.g. ElleKit, Substrate, libhooker"
+    validations:
+      required: true
+  - type: dropdown
+    id: app
+    attributes:
+      label: Media app
+      options:
+        - Apple Music
+        - Apple Podcasts
+        - YouTube Music
+        - Spotify
+        - Several / all of them
+        - Not app-specific
+    validations:
+      required: true
+  - type: input
+    id: appversion
+    attributes:
+      label: App version (for YouTube Music / Spotify)
+      placeholder: "e.g. Spotify 9.1.62"
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where does it happen? (if it's about a specific place)
+      multiple: true
+      options:
+        - Lock Screen
+        - Control Center
+        - Dynamic Island
+        - Settings pane
+        - Somewhere else / general
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens?
+      description: What goes wrong, and what did you expect instead? Steps to reproduce help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: tweaks
+    attributes:
+      label: Other tweaks that touch the now-playing UI
+      description: They are the most common source of conflicts. If possible, try reproducing with them disabled.

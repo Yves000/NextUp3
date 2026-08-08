@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "Bật hoặc tắt NextUp 3 ở mọi nơi.";
+"Enabled" = "Đã bật";
+"Apps" = "Ứng dụng";
+"Choose which apps show the Up Next row." = "Chọn ứng dụng nào hiển thị hàng “Tiếp theo”.";
+"Podcasts" = "Podcast";
+"Interfaces" = "Giao diện";
+"Choose where the Up Next row appears." = "Chọn nơi hàng “Tiếp theo” xuất hiện.";
+"Lock Screen" = "Màn hình khóa";
+"Control Center" = "Trung tâm điều khiển";

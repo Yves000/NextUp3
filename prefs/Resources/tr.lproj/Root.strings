@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "NextUp 3'ü her yerde açar veya kapatır.";
+"Enabled" = "Etkin";
+"Apps" = "Uygulamalar";
+"Choose which apps show the Up Next row." = "“Sıradaki” satırını hangi uygulamaların göstereceğini seçin.";
+"Podcasts" = "Podcast’ler";
+"Interfaces" = "Arayüzler";
+"Choose where the Up Next row appears." = "“Sıradaki” satırının nerede görüneceğini seçin.";
+"Lock Screen" = "Kilitli Ekran";
+"Control Center" = "Denetim Merkezi";

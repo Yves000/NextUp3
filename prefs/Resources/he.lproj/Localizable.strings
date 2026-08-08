@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "הבא בתור";
+"AX_SKIP_NEXT_TRACK" = "דילוג על השיר הבא";
+"AX_UP_NEXT" = "הבא בתור";
+"AX_UP_NEXT_TITLE_ARTIST" = "הבא בתור: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "הבא בתור: %1$@";
+"AX_HINT_PLAY_NOW" = "הקישו פעמיים כדי להשמיע את השיר הזה עכשיו";
+"AX_ACTION_SKIP" = "דילוג";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "השמעת השיר הקודם כשיר הבא";
+"AX_ANNOUNCE_SKIPPED" = "דולג";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "השיר הקודם נוסף לתור";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 מנהל את התור ״הבא בתור״ של Apple Music.";

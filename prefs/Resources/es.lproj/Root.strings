@@ -1,0 +1,7 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "Activa o desactiva NextUp 3 en todas partes.";
+"Enabled" = "Activado";
+"Choose which apps show the Up Next row." = "Elige qué apps muestran la fila «A continuación».";
+"Choose where the Up Next row appears." = "Elige dónde aparece la fila «A continuación».";
+"Lock Screen" = "Pantalla de bloqueo";
+"Control Center" = "Centro de control";

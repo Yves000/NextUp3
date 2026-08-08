@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "Activează sau dezactivează NextUp 3 peste tot.";
+"Enabled" = "Activat";
+"Apps" = "Aplicații";
+"Choose which apps show the Up Next row." = "Alegeți ce aplicații afișează rândul „Urmează”.";
+"Podcasts" = "Podcasturi";
+"Interfaces" = "Interfețe";
+"Choose where the Up Next row appears." = "Alegeți unde apare rândul „Urmează”.";
+"Lock Screen" = "Ecran de blocare";
+"Control Center" = "Centru de control";

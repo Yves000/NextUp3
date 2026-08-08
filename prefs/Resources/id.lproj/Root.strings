@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "Mengaktifkan atau menonaktifkan NextUp 3 di mana saja.";
+"Enabled" = "Diaktifkan";
+"Apps" = "Aplikasi";
+"Choose which apps show the Up Next row." = "Pilih aplikasi mana yang menampilkan baris “Berikutnya”.";
+"Podcasts" = "Podcast";
+"Interfaces" = "Antarmuka";
+"Choose where the Up Next row appears." = "Pilih di mana baris “Berikutnya” muncul.";
+"Lock Screen" = "Layar Terkunci";
+"Control Center" = "Pusat Kontrol";

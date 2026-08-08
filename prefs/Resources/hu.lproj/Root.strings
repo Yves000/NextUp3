@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "Mindenhol be- vagy kikapcsolja a NextUp 3-at.";
+"Enabled" = "Bekapcsolva";
+"Apps" = "Appok";
+"Choose which apps show the Up Next row." = "Válassza ki, mely appok jelenítsék meg a „Következő” sort.";
+"Podcasts" = "Podcastok";
+"Interfaces" = "Felületek";
+"Choose where the Up Next row appears." = "Válassza ki, hol jelenjen meg a „Következő” sor.";
+"Lock Screen" = "Zárolt képernyő";
+"Control Center" = "Vezérlőközpont";

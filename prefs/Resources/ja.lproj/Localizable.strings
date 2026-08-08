@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "次に再生";
+"AX_SKIP_NEXT_TRACK" = "次の曲をスキップ";
+"AX_UP_NEXT" = "次に再生";
+"AX_UP_NEXT_TITLE_ARTIST" = "次に再生：%1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "次に再生：%1$@";
+"AX_HINT_PLAY_NOW" = "この曲をすぐに再生するにはダブルタップします";
+"AX_ACTION_SKIP" = "スキップ";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "前の曲を次に再生";
+"AX_ANNOUNCE_SKIPPED" = "スキップしました";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "前の曲を再生待ちに追加しました";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 は Apple Music の「次に再生」キューを管理します。";

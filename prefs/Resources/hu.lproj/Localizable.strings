@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Következő";
+"AX_SKIP_NEXT_TRACK" = "Következő szám kihagyása";
+"AX_UP_NEXT" = "Következő";
+"AX_UP_NEXT_TITLE_ARTIST" = "Következő: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Következő: %1$@";
+"AX_HINT_PLAY_NOW" = "Koppintson duplán a szám azonnali lejátszásához";
+"AX_ACTION_SKIP" = "Kihagyás";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Előző szám lejátszása következőként";
+"AX_ANNOUNCE_SKIPPED" = "Kihagyva";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Előző szám sorba állítva";
+"MUSIC_USAGE_DESCRIPTION" = "A NextUp 3 az Apple Music „Következő” várólistáját kezeli.";

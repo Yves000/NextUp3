@@ -1,0 +1,16 @@
+#!/bin/sh
+# Clean up everything the tweak wrote at runtime, then restart the previously
+# injected media processes so the dylib is actually gone from them.
+case "$1" in
+  remove|purge)
+    # Settings (CFPreferences, written by the prefs pane)
+    rm -f /var/mobile/Library/Preferences/com.yves.nextup3.plist
+    # Play history (written inside the Music app's data container:
+    # .../Library/Application Support/NextUp3/history.plist)
+    find /var/mobile/Containers/Data/Application \
+      -maxdepth 4 -type d -path "*/Library/Application Support/NextUp3" \
+      -exec rm -rf {} + 2>/dev/null
+    killall Music Podcasts YouTubeMusic Spotify MediaRemoteUI 2>/dev/null || true
+    ;;
+esac
+exit 0

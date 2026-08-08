@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "A seguire";
+"AX_SKIP_NEXT_TRACK" = "Salta il brano successivo";
+"AX_UP_NEXT" = "A seguire";
+"AX_UP_NEXT_TITLE_ARTIST" = "A seguire: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "A seguire: %1$@";
+"AX_HINT_PLAY_NOW" = "Tocca due volte per riprodurre subito questo brano";
+"AX_ACTION_SKIP" = "Salta";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Riproduci il brano precedente subito dopo";
+"AX_ANNOUNCE_SKIPPED" = "Saltato";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Brano precedente in coda";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 gestisce la coda «A seguire» di Apple Music.";

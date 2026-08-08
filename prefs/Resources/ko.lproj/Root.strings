@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "모든 위치에서 NextUp 3을 켜거나 끕니다.";
+"Enabled" = "활성화";
+"Apps" = "앱";
+"Choose which apps show the Up Next row." = "‘다음 곡’ 행을 표시할 앱을 선택하십시오.";
+"Podcasts" = "팟캐스트";
+"Interfaces" = "인터페이스";
+"Choose where the Up Next row appears." = "‘다음 곡’ 행이 표시될 위치를 선택하십시오.";
+"Lock Screen" = "잠금 화면";
+"Control Center" = "제어 센터";

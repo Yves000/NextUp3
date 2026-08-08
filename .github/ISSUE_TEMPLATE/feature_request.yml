@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest an improvement or a new app to support
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to see?
+      description: For a new media app, name the app; for other ideas, describe what should happen and where.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Mockups, examples from other tweaks, etc.

@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Hierna";
+"AX_SKIP_NEXT_TRACK" = "Volgend nummer overslaan";
+"AX_UP_NEXT" = "Hierna";
+"AX_UP_NEXT_TITLE_ARTIST" = "Hierna: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Hierna: %1$@";
+"AX_HINT_PLAY_NOW" = "Dubbeltik om dit nummer nu af te spelen";
+"AX_ACTION_SKIP" = "Overslaan";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Speel vorig nummer hierna af";
+"AX_ANNOUNCE_SKIPPED" = "Overgeslagen";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Vorig nummer in wachtrij geplaatst";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 beheert de ‘Hierna’-wachtrij van Apple Music.";

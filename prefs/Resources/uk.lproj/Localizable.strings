@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Далі";
+"AX_SKIP_NEXT_TRACK" = "Пропустити наступний трек";
+"AX_UP_NEXT" = "Далі";
+"AX_UP_NEXT_TITLE_ARTIST" = "Далі: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Далі: %1$@";
+"AX_HINT_PLAY_NOW" = "Двічі торкніться, щоб відтворити цей трек зараз";
+"AX_ACTION_SKIP" = "Пропустити";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Відтворити попередній трек наступним";
+"AX_ANNOUNCE_SKIPPED" = "Пропущено";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Попередній трек додано в чергу";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 керує чергою «Далі» в Apple Music.";

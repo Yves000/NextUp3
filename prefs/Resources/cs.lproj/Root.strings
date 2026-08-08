@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "Zapne nebo vypne NextUp 3 všude.";
+"Enabled" = "Zapnuto";
+"Apps" = "Aplikace";
+"Choose which apps show the Up Next row." = "Vyberte, které aplikace zobrazují řádek „Další“.";
+"Podcasts" = "Podcasty";
+"Interfaces" = "Rozhraní";
+"Choose where the Up Next row appears." = "Vyberte, kde se řádek „Další“ zobrazí.";
+"Lock Screen" = "Zamčená obrazovka";
+"Control Center" = "Ovládací centrum";

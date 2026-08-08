@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "다음 곡";
+"AX_SKIP_NEXT_TRACK" = "다음 곡 건너뛰기";
+"AX_UP_NEXT" = "다음 곡";
+"AX_UP_NEXT_TITLE_ARTIST" = "다음 곡: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "다음 곡: %1$@";
+"AX_HINT_PLAY_NOW" = "이중 탭하면 이 곡을 지금 재생합니다";
+"AX_ACTION_SKIP" = "건너뛰기";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "이전 곡을 다음에 재생";
+"AX_ANNOUNCE_SKIPPED" = "건너뜀";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "이전 곡이 대기열에 추가됨";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3는 Apple Music의 ‘다음 재생’ 대기열을 관리합니다.";

@@ -1,0 +1,10 @@
+/* NextUp 3 prefs pane — keys must byte-exactly match Root.plist values */
+"Turns NextUp 3 on or off everywhere." = "Ενεργοποιεί ή απενεργοποιεί το NextUp 3 παντού.";
+"Enabled" = "Ενεργοποιημένο";
+"Apps" = "Εφαρμογές";
+"Choose which apps show the Up Next row." = "Επιλέξτε ποιες εφαρμογές εμφανίζουν τη σειρά «Επόμενο».";
+"Podcasts" = "Podcast";
+"Interfaces" = "Περιβάλλοντα";
+"Choose where the Up Next row appears." = "Επιλέξτε πού εμφανίζεται η σειρά «Επόμενο».";
+"Lock Screen" = "Οθόνη κλειδώματος";
+"Control Center" = "Κέντρο ελέγχου";

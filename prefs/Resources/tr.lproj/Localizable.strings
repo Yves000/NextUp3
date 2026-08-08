@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Sıradaki";
+"AX_SKIP_NEXT_TRACK" = "Sıradaki parçayı atla";
+"AX_UP_NEXT" = "Sıradaki";
+"AX_UP_NEXT_TITLE_ARTIST" = "Sıradaki: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Sıradaki: %1$@";
+"AX_HINT_PLAY_NOW" = "Bu parçayı şimdi çalmak için iki kez dokunun";
+"AX_ACTION_SKIP" = "Atla";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Önceki parçayı sıradaki olarak çal";
+"AX_ANNOUNCE_SKIPPED" = "Atlandı";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Önceki parça sıraya eklendi";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3, Apple Music’in “Sıradaki” kuyruğunu yönetir.";

@@ -1,0 +1,12 @@
+/* NextUp 3 — row UI + VoiceOver strings (loaded via NULocalization.h) */
+"UP_NEXT_CAPTION" = "Up Next";
+"AX_SKIP_NEXT_TRACK" = "Skip next track";
+"AX_UP_NEXT" = "Up Next";
+"AX_UP_NEXT_TITLE_ARTIST" = "Up Next: %1$@ — %2$@";
+"AX_UP_NEXT_TITLE" = "Up Next: %1$@";
+"AX_HINT_PLAY_NOW" = "Double-tap to play this track now";
+"AX_ACTION_SKIP" = "Skip";
+"AX_ACTION_PLAY_PREVIOUS_NEXT" = "Play previous track next";
+"AX_ANNOUNCE_SKIPPED" = "Skipped";
+"AX_ANNOUNCE_PREVIOUS_QUEUED" = "Previous track queued";
+"MUSIC_USAGE_DESCRIPTION" = "NextUp 3 manages the Apple Music Up Next queue.";
