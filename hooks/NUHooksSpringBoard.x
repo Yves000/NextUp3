@@ -137,6 +137,15 @@ static BOOL NUShouldBlockApertureSwipe(void) {
     @autoreleasepool {
         NUApplySandbox();
         if (!NUIsSpringBoard()) return;
+        // Re-seed the live toggle word from the persisted prefs. notify_state is not
+        // durable storage: notifyd discards a name's state once the last process
+        // registered for it exits, and a respring tears down every injected process
+        // that held "com.yves.nextup3.state" at once — so the published state (a
+        // disabled master switch included) is gone by the time the tweak reloads, and
+        // NUPrefBool would fall back to the fail-open default. SpringBoard relaunches on
+        // every respring and can read the prefs domain, so it republishes the token here;
+        // being system-global, that one seed restores the state for every reader process.
+        NUPrefsPublishState();
         %init(SpringBoard);
     }
 }
