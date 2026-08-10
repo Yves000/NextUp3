@@ -259,6 +259,25 @@ static inline BOOL NUCCRoutingOpen(UIView *nowPlayingView) {
     return NUCCRoutingViewOpen(nowPlayingView);
 }
 
+// Pin the row's visibility across the route picker's open/close animation, then hand
+// control back to the geometry gate. wasOpen is the picker's state BEFORE the tap that
+// triggered this: opening (was closed) → force-hide the row now so the picker has room
+// before it animates in; closing (was open) → force-show it immediately. The override is
+// dropped once the animation has settled, after which -layoutSubviews resumes gating on
+// the real routing-view geometry.
+static inline void NUCCApplyRouteOverride(UIView *npView, BOOL wasOpen) {
+    void *setKey   = wasOpen ? kNURouteClosingKey : kNURouteOpeningKey; // closing → force show; opening → force hide
+    void *clearKey = wasOpen ? kNURouteOpeningKey : kNURouteClosingKey;
+    objc_setAssociatedObject(npView, clearKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(npView, setKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [npView setNeedsLayout];
+    __weak UIView *weak = npView;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.6 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        objc_setAssociatedObject(weak, setKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [weak setNeedsLayout];
+    });
+}
+
 static inline BOOL NUCCModuleExpanded(UIView *view) {
     Class MOD = objc_getClass("MRUMediaControlsModuleViewController");
     if (!MOD) return NO;
@@ -308,6 +327,35 @@ static inline UIView *NUCCBackdropView(UIView *nowPlayingView) {
     return NUCCViewOfAnyClass(nowPlayingView, kNames, sizeof(kNames) / sizeof(*kNames));
 }
 
+// The full AirPlay routing list ("Control Other Speakers & TVs") is up when the module's
+// discoveryMode is non-zero; it is 0 while the now-playing content is shown. This is a
+// distinct surface from the inline route picker (NUCCRoutingOpen) — a full
+// MRURoutingViewController laid over the card — so the row must be gated off separately
+// while it is present. Walks the responder chain to the module, as NUCCModuleExpanded does.
+static inline BOOL NUCCDiscoveryActive(UIView *view) {
+    Class MOD = objc_getClass("MRUMediaControlsModuleViewController");
+    if (!MOD) return NO;
+    for (UIResponder *r = view.nextResponder; r; r = r.nextResponder)
+        if ([r isKindOfClass:MOD]) {
+            MRUMediaControlsModuleViewController *mod = (MRUMediaControlsModuleViewController *)r;
+            return [mod respondsToSelector:@selector(discoveryMode)] && mod.discoveryMode != 0;
+        }
+    return NO;
+}
+
+// The Control Center now-playing view (tagged kNUHostViewKey == NUHostControlCenter)
+// within a subtree. The -didSelectListState: hook uses it to relayout the now-playing view
+// on the tap, so the NUCCDiscoveryActive gate applies as the list opens.
+static inline UIView *NUCCNowPlayingInSubtree(UIView *root) {
+    if (!root) return nil;
+    if (NUViewHostKind(root) == NUHostControlCenter) return root;
+    for (UIView *sub in root.subviews) {
+        UIView *r = NUCCNowPlayingInSubtree(sub);
+        if (r) return r;
+    }
+    return nil;
+}
+
 // Show + position the row (either host) when there's a live next track.
 static inline BOOL NUViewShowsRow(UIView *view) {
     NUHostKind h = NUViewHostKind(view);
@@ -321,6 +369,8 @@ static inline BOOL NUViewShowsRow(UIView *view) {
         // transition. On iOS 18 the picker is an inline routing view (detected by height); on
         // iOS 14–17 it's a modal, flagged by the -presentViewController: hook. Both via the keys.
         if (NUCCRoutingOpen(view)) return NO;
+        // The full routing list ("Control Other Speakers & TVs") is up.
+        if (NUCCDiscoveryActive(view)) return NO;
     }
     return YES;
 }

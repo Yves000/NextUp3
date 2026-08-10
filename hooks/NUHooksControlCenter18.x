@@ -2,6 +2,7 @@
 // These classes only exist on iOS 18; Logos skips the hooks on <=17 (nil class),
 // where NUHooksControlCenterLegacy runs instead.
 #import "NUHooksShared.h"
+#import <mach-o/dyld.h>
 
 %group NUCC18
 #pragma mark - iOS 18 Control Center now-playing module
@@ -128,10 +129,68 @@
 
 %end // NUCC18
 
+%group NUCCRoute
+#pragma mark - iOS 18+ Control Center routing surfaces (shared with iOS 26)
+
+// Control Center opens its AirPlay routing UI from two controls, on two different classes;
+// both must hide the row for the duration so it is not left overlapping the routing content.
+// Each action runs synchronously at tap, before the routing UI animates in, so hiding from
+// here lands before the transition rather than during it. Both classes and selectors are
+// identical on iOS 18 and 26, so one group covers both.
+
+// The transport row's routing button opens the inline picker. The now-playing VC's
+// -didSelectRouteButton: / -toggleRoutePicker cover the module's own route buttons, not this
+// one. The transport view also backs the lock-screen and Dynamic Island players, so act only
+// when a Control Center now-playing view is found above the button.
+%hook MRUNowPlayingTransportControlsView
+
+- (void)didSelectRoutingButton:(id)button {
+    UIView *np = nil;
+    for (UIView *v = ((UIView *)self).superview; v; v = v.superview)
+        if (NUViewHostKind(v) == NUHostControlCenter) { np = v; break; }
+    BOOL wasOpen = np ? NUCCRoutingViewOpen(np) : NO;
+    %orig;
+    if (np) NUCCApplyRouteOverride(np, wasOpen);
+}
+
+%end
+
+// The "Control Other Speakers & TVs" button opens the full routing list via
+// -didSelectListState:, which sets discoveryMode. %orig updates discoveryMode, so relaying
+// out the now-playing view here applies the NUCCDiscoveryActive gate on the tap. The row is
+// restored on dismissal, when discoveryMode returns to 0 and the next layout runs.
+%hook MRUMediaControlsModuleViewController
+
+- (void)didSelectListState:(id)arg1 {
+    %orig;
+    [NUCCNowPlayingInSubtree(self.viewIfLoaded) setNeedsLayout];
+}
+
+%end
+%end // NUCCRoute
+
+// MediaControls is loaded up front on iOS 18 but on demand on iOS 26, so gate the routing hooks
+// on the class actually existing rather than on constructor timing. _dyld_register_func_for_add_image
+// replays already-loaded images, so this fires immediately on 18 and when the module loads on 26.
+static void NUCCRouteInitIfLoaded(void) {
+    static BOOL done = NO;
+    if (done) return;
+    if (NUIOSMajor() < 18) return;                                   // 14–17 keep the modal path
+    if (!objc_getClass("MRUNowPlayingTransportControlsView")) return;
+    done = YES;
+    %init(NUCCRoute);
+}
+
+static void NUCCRouteImageAdded(const struct mach_header *mh, intptr_t slide) {
+    NUCCRouteInitIfLoaded();
+}
+
 %ctor {
     @autoreleasepool {
         NUApplySandbox();
         if (!NUIsDisplaySide()) return;
         %init(NUCC18);
+        if (NUIOSMajor() >= 18)
+            _dyld_register_func_for_add_image(NUCCRouteImageAdded);
     }
 }
