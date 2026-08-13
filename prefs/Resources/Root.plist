@@ -73,6 +73,18 @@
 			<key>cell</key>
 			<string>PSSwitchCell</string>
 			<key>label</key>
+			<string>YouTube</string>
+			<key>key</key>
+			<string>enabledYouTube</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.yves.nextup3</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>label</key>
 			<string>Spotify</string>
 			<key>key</key>
 			<string>enabledSpotify</string>

@@ -1,5 +1,5 @@
 {
     Filter = {
-        Bundles = ( "com.apple.MediaRemoteUI", "com.apple.Music", "com.apple.podcasts", "com.google.ios.youtubemusic", "com.spotify.client", "com.apple.springboard" );
+        Bundles = ( "com.apple.MediaRemoteUI", "com.apple.Music", "com.apple.podcasts", "com.google.ios.youtubemusic", "com.google.ios.youtube", "com.spotify.client", "com.apple.springboard" );
     };
 }

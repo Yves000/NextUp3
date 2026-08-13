@@ -52,14 +52,15 @@ static NSString *NUBundleIDForKey(NSString *key) {
     if ([key isEqualToString:@"enabledMusic"])        return @"com.apple.Music";
     if ([key isEqualToString:@"enabledPodcasts"])     return @"com.apple.podcasts";
     if ([key isEqualToString:@"enabledYouTubeMusic"]) return @"com.google.ios.youtubemusic";
+    if ([key isEqualToString:@"enabledYouTube"])      return @"com.google.ios.youtube";
     if ([key isEqualToString:@"enabledSpotify"])      return @"com.spotify.client";
     return nil;
 }
 
-// The four app-toggle keys, in display order — the canonical iteration list for the
+// The five app-toggle keys, in display order — the canonical iteration list for the
 // install-state signature below.
 static NSArray<NSString *> *NUAppToggleKeys(void) {
-    return @[@"enabledMusic", @"enabledPodcasts", @"enabledYouTubeMusic", @"enabledSpotify"];
+    return @[@"enabledMusic", @"enabledPodcasts", @"enabledYouTubeMusic", @"enabledYouTube", @"enabledSpotify"];
 }
 
 // YES if the app is installed on this device. Fails OPEN — if LaunchServices is unavailable

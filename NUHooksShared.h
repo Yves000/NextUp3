@@ -41,6 +41,9 @@ static inline BOOL NUIsPodcasts(void) {
 static inline BOOL NUIsYouTubeMusic(void) {
     return [NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.google.ios.youtubemusic"];
 }
+static inline BOOL NUIsYouTube(void) {
+    return [NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.google.ios.youtube"];
+}
 static inline BOOL NUIsSpotify(void) {
     return [NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.spotify.client"];
 }
@@ -48,10 +51,10 @@ static inline BOOL NUIsSpringBoard(void) {
     return [NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.apple.springboard"];
 }
 // The display side is every renderer process (MediaRemoteUI + SpringBoard); the Music, Podcasts,
-// YouTube Music and Spotify apps are the data providers, so they are NOT display side. Every new
-// provider app MUST be excluded here, or the display hooks initialise inside it too.
+// YouTube Music, YouTube and Spotify apps are the data providers, so they are NOT display side.
+// Every new provider app MUST be excluded here, or the display hooks initialise inside it too.
 static inline BOOL NUIsDisplaySide(void) {
-    return !NUIsMusic() && !NUIsPodcasts() && !NUIsYouTubeMusic() && !NUIsSpotify();
+    return !NUIsMusic() && !NUIsPodcasts() && !NUIsYouTubeMusic() && !NUIsYouTube() && !NUIsSpotify();
 }
 
 #pragma mark - Shared state (defined in NUHooksShared.m)

@@ -43,6 +43,7 @@ typedef NS_ENUM(NSInteger, NUSource) {
     NUSourceMusic,
     NUSourcePodcasts,
     NUSourceYouTubeMusic,
+    NUSourceYouTube,
     NUSourceSpotify,
 };
 
@@ -50,6 +51,7 @@ typedef NS_ENUM(NSInteger, NUSource) {
 static LMConnection gConnMusic         = { MACH_PORT_NULL, kNUServiceNameMusic };
 static LMConnection gConnPodcasts      = { MACH_PORT_NULL, kNUServiceNamePodcasts };
 static LMConnection gConnYouTubeMusic  = { MACH_PORT_NULL, kNUServiceNameYouTubeMusic };
+static LMConnection gConnYouTube       = { MACH_PORT_NULL, kNUServiceNameYouTube };
 static LMConnection gConnSpotify       = { MACH_PORT_NULL, kNUServiceNameSpotify };
 
 static LMConnection *NUConnectionForSource(NUSource s) {
@@ -57,6 +59,7 @@ static LMConnection *NUConnectionForSource(NUSource s) {
         case NUSourceMusic:         return &gConnMusic;
         case NUSourcePodcasts:      return &gConnPodcasts;
         case NUSourceYouTubeMusic:  return &gConnYouTubeMusic;
+        case NUSourceYouTube:       return &gConnYouTube;
         case NUSourceSpotify:       return &gConnSpotify;
         default:                    return NULL;
     }
@@ -65,6 +68,7 @@ static NUSource NUSourceForBundleID(NSString *bid) {
     if ([bid isEqualToString:@"com.apple.Music"])              return NUSourceMusic;
     if ([bid isEqualToString:@"com.apple.podcasts"])           return NUSourcePodcasts;
     if ([bid isEqualToString:@"com.google.ios.youtubemusic"])  return NUSourceYouTubeMusic;
+    if ([bid isEqualToString:@"com.google.ios.youtube"])       return NUSourceYouTube;
     if ([bid isEqualToString:@"com.spotify.client"])           return NUSourceSpotify;
     return NUSourceNone;
 }
@@ -77,6 +81,7 @@ static NSString *NUAppPrefKeyForSource(NUSource s) {
         case NUSourceMusic:         return @"enabledMusic";
         case NUSourcePodcasts:      return @"enabledPodcasts";
         case NUSourceYouTubeMusic:  return @"enabledYouTubeMusic";
+        case NUSourceYouTube:       return @"enabledYouTube";
         case NUSourceSpotify:       return @"enabledSpotify";
         default:                    return nil;
     }
@@ -94,6 +99,7 @@ static const char *NUSkipNotificationForSource(NUSource s) {
         case NUSourceMusic:         return kNUSkipNotificationMusic;
         case NUSourcePodcasts:      return kNUSkipNotificationPodcasts;
         case NUSourceYouTubeMusic:  return kNUSkipNotificationYouTubeMusic;
+        case NUSourceYouTube:       return kNUSkipNotificationYouTube;
         case NUSourceSpotify:       return kNUSkipNotificationSpotify;
         default:                    return NULL;
     }
@@ -102,6 +108,7 @@ static const char *NUPrevNotificationForSource(NUSource s) {
     switch (s) {
         case NUSourcePodcasts:      return kNUPrevNotificationPodcasts;
         case NUSourceYouTubeMusic:  return kNUPrevNotificationYouTubeMusic;
+        case NUSourceYouTube:       return kNUPrevNotificationYouTube;
         case NUSourceSpotify:       return kNUPrevNotificationSpotify;
         default:                    return NULL; // Music (and any display-side-enqueue source)
     }
@@ -415,6 +422,8 @@ static BOOL NUDictBool(NSDictionary *d, NSString *k) {
     return self.backAdamID.length > 0;
 }
 
+- (BOOL)prefersWideArtwork { return self.source == NUSourceYouTube; }
+
 - (void)skipNextTrack {
     if (!self.active || !self.canSkip) return;
     const char *note = NUSkipNotificationForSource(self.source);
@@ -507,6 +516,12 @@ static Boolean (*NUSendMRCommand(void))(unsigned int, id) {
     // directly (-playItemAtIndex:) rather than relying on the MediaRemote NextTrack mapping.
     if (self.source == NUSourceYouTubeMusic) {
         notify_post(kNUJumpNotificationYouTubeMusic);
+        return;
+    }
+    // Same stack in the main YouTube app — and there the shown item is often an autoplay
+    // suggestion rather than a queue entry, which NextTrack would not reach at all.
+    if (self.source == NUSourceYouTube) {
+        notify_post(kNUJumpNotificationYouTube);
         return;
     }
     Boolean (*send)(unsigned int, id) = NUSendMRCommand();

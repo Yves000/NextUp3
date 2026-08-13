@@ -13,7 +13,7 @@ private MediaRemote / MediaControls frameworks. The private-API interface
 declarations and version notes exist to make that UI integration line up across
 iOS versions.
 
-## Architecture (one dylib, six processes)
+## Architecture (one dylib, seven processes)
 
 Two roles, decided per process in each hook file's `%ctor`:
 
@@ -21,8 +21,13 @@ Two roles, decided per process in each hook file's `%ctor`:
   `NUMusicProvider` (com.apple.Music; also serves Podcasts on iOS 18+, which
   moved to the same MPCQueueController stack), `NUPodcastProvider`
   (com.apple.podcasts, pre-iOS-18 MT* stack), `NUYouTubeMusicProvider`
-  (com.google.ios.youtubemusic, YT* stack), `NUSpotifyProvider`
-  (com.spotify.client, SPT* facade). All subclass `NUProviderBase`. A provider
+  (com.google.ios.youtubemusic, YT* stack), `NUYouTubeProvider`
+  (com.google.ios.youtube — the same YT* stack, but two sources: a playlist/mix
+  is a mutable queue entry, while a standalone video leaves `YTQueueController`
+  empty and the next-up comes from `YTAutoplayAutonavController`'s renderer,
+  which can only be played, so the snapshot reports canSkip/canPrev off for it),
+  `NUSpotifyProvider` (com.spotify.client, SPT* facade). All subclass
+  `NUProviderBase`. A provider
   reads its app's live queue, serves title/artist/artwork snapshots over IPC,
   and performs skip / play-now / previous through the app's own in-process API.
 - **Display** — `NUNextUpManager` (source tracking + LightMessaging client +
@@ -52,6 +57,8 @@ fallback. Canonical explanation at the top of `NUPrefs.h`.
 | `hooks/NUHooks<App>Provider.x` | Thin per-app `%ctor` gates that start the matching provider |
 | `NUHooksShared.{h,m}` | Process gates (`NUIsMusic()`, `NUIsDisplaySide()`, …), view/VC ancestry helpers, `NUCCLayoutRow` (CC row layout shared by 18/26) |
 | `NUShared.h` | Service names, notification names, snapshot dictionary keys, `NUApplySandbox()`, `NUDITouchSet/Get` |
+| `NUYouTubeShared.h` | The `YT*`/`YTI*` queue-item, renderer and queue-edit interfaces plus the text/artwork-URL helpers shared by the YouTube Music and YouTube providers — the two apps ship the same client stack, so only `YTQueueController` stays declared per provider |
+| `NUYouTubeProvider.{h,m}` | Beyond the YTM parallel: play history is tracked in the provider (the queue's `previousNavigableVideoIndex` is list order, not history), skip removes by index (`-removeVideoID:` matches an endpoint field that is nil for playlist entries), and a row-driven mutation suppresses the app's index/count republish, which would otherwise re-publish a stale elapsed time and jump the system progress bar |
 | `NUPrivate.h` | Private-API @interface declarations (class-dump + Frida-verified) |
 | `NUPrefs.{h,m}` | Pref keys, state-bit layout, `NUPrefBool` / `NUMasterEnabled` (`NUInterfaceEnabled` lives in NUHooksShared.h) |
 | `prefs/` | PreferenceLoader pane; `Root.strings` keys must byte-exactly match `Root.plist` values. The controller filters `Root.plist` at runtime — rows for apps that aren't installed, and the Dynamic Island row without an island (MobileGestalt `ArtworkTraits` → subtype, then the panel's exclusion area), are dropped. `NUPrefsHeaderView` is the icon/name/version header above the first group: it is the table's `tableHeaderView`, so it must be measured and reassigned in `-viewDidLayoutSubviews` — but only when the size actually changed, since an unconditional reassignment inside a layout pass is a relayout loop — and the navigation title is handed over by KVO on the table's `contentOffset`, not `-scrollViewDidScroll:`, which needs a delegate Preferences does not promise. Its icon and the Source Code row share `-openSourceRepository`; that row's GitHub mark is a custom SF Symbol from `NUSymbols.xcassets` (actool step in `prefs/Makefile`) rather than a PNG, because Preferences rasterises an `icon` file at a size of its own choosing |

@@ -46,6 +46,7 @@ static inline void NULogWrite(const char *fmt, ...) {
 #define kNUServiceNameMusic        "com.yves.nextup3.svc.music"
 #define kNUServiceNamePodcasts     "com.yves.nextup3.svc.podcasts"
 #define kNUServiceNameYouTubeMusic "com.yves.nextup3.svc.youtubemusic"
+#define kNUServiceNameYouTube      "com.yves.nextup3.svc.youtube"
 #define kNUServiceNameSpotify      "com.yves.nextup3.svc.spotify"
 
 // Darwin notifications (no payload; just signals).
@@ -56,6 +57,7 @@ static inline void NULogWrite(const char *fmt, ...) {
 #define kNUSkipNotificationMusic        "com.yves.nextup3.skip.music"    // display → Music provider: remove next track
 #define kNUSkipNotificationPodcasts     "com.yves.nextup3.skip.podcasts" // display → Podcasts provider: remove next episode
 #define kNUSkipNotificationYouTubeMusic "com.yves.nextup3.skip.youtubemusic" // display → YTM provider: remove next track
+#define kNUSkipNotificationYouTube      "com.yves.nextup3.skip.youtube"      // display → YouTube provider: remove next video
 #define kNUSkipNotificationSpotify      "com.yves.nextup3.skip.spotify"      // display → Spotify provider: remove next track
 // Play-previous: Music does the enqueue display-side (public MPMusicPlayer API), so it
 // needs no notification. Podcasts' enqueue API (MTUpNextController) is in-process, so the
@@ -64,6 +66,8 @@ static inline void NULogWrite(const char *fmt, ...) {
 // YouTube Music enqueues 'previous' provider-side too (its queue mutation API is in-process), so the
 // display signals the YTM provider to re-queue the previous track as the immediate next itself.
 #define kNUPrevNotificationYouTubeMusic "com.yves.nextup3.prev.youtubemusic" // display → YTM provider: re-queue previous track
+// The main YouTube app shares that queue stack, so 'previous' is a provider-side re-queue there too.
+#define kNUPrevNotificationYouTube "com.yves.nextup3.prev.youtube" // display → YouTube provider: re-queue previous video
 // Spotify's queue API is in-process too (-[SPTPlayer playAsNextInQueue:options:loggingParams:] is
 // exactly the "Play Next" semantic), so it takes the provider-side path as well. Registering this
 // name is also what flips -[NUNextUpManager canActionPrevious] off the adamID requirement.
@@ -75,6 +79,9 @@ static inline void NULogWrite(const char *fmt, ...) {
 // YTM maps the MediaRemote NextTrack command through its own player; jump the queue to the next
 // item's index directly (-playItemAtIndex:) instead, so the cover tap always plays the shown track.
 #define kNUJumpNotificationYouTubeMusic "com.yves.nextup3.jump.youtubemusic" // display → YTM provider: play the next track now
+// Same for the main YouTube app — and there the shown item may be an autoplay suggestion, which
+// the MediaRemote NextTrack command would not reach at all.
+#define kNUJumpNotificationYouTube "com.yves.nextup3.jump.youtube" // display → YouTube provider: play the next video now
 
 // User preferences live in NUPrefs.h (domain + notify-state token). Kept out of this IPC
 // header so the Settings bundle can include NUPrefs.h without pulling in the mach stack.

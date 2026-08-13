@@ -18,6 +18,11 @@ extern NSString *const NUNextUpDidChangeNotification;
 @property (nonatomic, readonly) BOOL canSkip;
 @property (nonatomic, readonly) BOOL canPrevious; // a previous track exists to enqueue as next
 
+// YES while the current source's artwork is 16:9 rather than square. YouTube thumbnails are
+// always 16:9, so a square well would centre-crop a third of every frame. The other four
+// sources deliver square cover art and stay square.
+@property (nonatomic, readonly) BOOL prefersWideArtwork;
+
 // Carousel neighbour previews (may be nil). "fwd" = what becomes up-next after a
 // skip (slides in on a left swipe); "back" = the previously-played track that gets
 // enqueued as the new up-next on a right swipe ("Play Next").

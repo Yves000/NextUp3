@@ -12,7 +12,7 @@ case "$1" in
     find /var/mobile/Containers/Data/Application \
       -maxdepth 4 -type d -path "*/Library/Application Support/NextUp3" \
       -exec rm -rf {} + 2>/dev/null
-    killall Music Podcasts YouTubeMusic Spotify MediaRemoteUI 2>/dev/null || true
+    killall Music Podcasts YouTubeMusic YouTube Spotify MediaRemoteUI 2>/dev/null || true
     ;;
 esac
 exit 0

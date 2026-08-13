@@ -8,6 +8,10 @@
 // separator inset so everything is consistent.
 static const CGFloat kHPadding = 14.0;
 static const CGFloat kArtSize = 44.0;
+// Width of the artwork well when the source delivers 16:9 frames (YouTube). Only the width
+// grows; the height stays kArtSize, so row height and the Control Center / Dynamic Island
+// metrics are untouched.
+static const CGFloat kArtWideSize = 78.0; // 44 * 16/9, rounded to a whole point
 static const CGFloat kRowHeight = kArtSize + 2 * kHPadding; // 14 top + 14 bottom
 static const CGFloat kSeparatorPixels = 3.0; // separator thickness in physical pixels
 
@@ -20,6 +24,10 @@ static CGFloat NUSeparatorHeight(void) {
 }
 
 static const CGFloat kArtCorner = 7.5; // matches Apple's now-playing artwork radius (iOS 16/17)
+// Placeholder → artwork crossfade. The YouTube and Spotify providers fetch artwork over the
+// network, so the swap lands well after the row is on screen. Close to the swipe crossfade's
+// 0.2s.
+static const NSTimeInterval kArtFadeDuration = 0.22;
 
 // The pre-iOS-16 lock-screen now-playing uses a 16pt symmetric content inset and
 // a 4pt artwork corner (both measured live), where iOS 16/17 use 14pt / 7.5pt.
@@ -255,6 +263,7 @@ static BOOL NUViewIsRTL(UIView *v) {
 @property (nonatomic) CGFloat nuHInset;      // artwork/label leading inset
 @property (nonatomic) CGFloat nuArtworkTop;  // artwork top; skip + labels align to its band
 @property (nonatomic) CGFloat nuArtCorner;   // artwork corner radius (concentric in CC)
+@property (nonatomic) BOOL nuWideArtwork;   // 16:9 artwork well instead of square
 // Last applied content (so a committed neighbour can be promoted to current).
 @property (nonatomic, copy, readonly) NSString *itemTitle;
 @property (nonatomic, copy, readonly) NSString *itemSubtitle;
@@ -348,10 +357,30 @@ static BOOL NUViewIsRTL(UIView *v) {
     // prevents a re-assign flash after a previous-swipe commit. nil→real
     // upgrades and genuine track changes still apply.
     if (sameTitle && sameSubtitle && _itemArtwork) return;
+    // Only the placeholder → artwork upgrade. A track change arrives with its own card
+    // animation.
+    // _itemArtwork == nil is implied by the early return above: same track, artwork late.
+    BOOL fromPlaceholder = (artwork != nil && sameTitle && sameSubtitle);
     _itemArtwork = artwork;
     if (artwork) {
-        self.artworkView.image = artwork;
-        self.artworkView.contentMode = UIViewContentModeScaleAspectFill;
+        void (^applyArtwork)(void) = ^{
+            self.artworkView.image = artwork;
+            self.artworkView.contentMode = UIViewContentModeScaleAspectFill;
+        };
+        // Reduce Motion asks for a crossfade in place of movement (the swipe commit does the
+        // same), so it stays on in both cases. Skipped when nothing can see it: the incoming
+        // card sits hidden at rest and the Control Center row parks at alpha 0, not hidden.
+        if (fromPlaceholder && self.window && !self.hidden && self.alpha > 0.0) {
+            [UIView transitionWithView:self.artworkView
+                              duration:kArtFadeDuration
+                               options:UIViewAnimationOptionTransitionCrossDissolve |
+                                       UIViewAnimationOptionAllowUserInteraction |
+                                       UIViewAnimationOptionBeginFromCurrentState
+                            animations:applyArtwork
+                            completion:nil];
+        } else {
+            applyArtwork();
+        }
     } else {
         UIImageSymbolConfiguration *cfg =
             [UIImageSymbolConfiguration configurationWithPointSize:16.0 weight:UIImageSymbolWeightMedium];
@@ -365,6 +394,8 @@ static BOOL NUViewIsRTL(UIView *v) {
     }
 }
 
+- (CGFloat)artworkWidth { return _nuWideArtwork ? kArtWideSize : kArtSize; }
+- (void)setNuWideArtwork:(BOOL)v { if (_nuWideArtwork != v) { _nuWideArtwork = v; [self setNeedsLayout]; } }
 - (void)setNuHInset:(CGFloat)v { if (_nuHInset != v) { _nuHInset = v; [self setNeedsLayout]; } }
 - (void)setNuArtworkTop:(CGFloat)v { if (_nuArtworkTop != v) { _nuArtworkTop = v; [self setNeedsLayout]; } }
 - (void)setNuArtCorner:(CGFloat)v {
@@ -379,14 +410,15 @@ static BOOL NUViewIsRTL(UIView *v) {
     CGFloat hI = self.nuHInset;
     CGFloat artY = self.nuArtworkTop;
     BOOL rtl = NUViewIsRTL(self);
-    self.artworkView.frame = rtl ? CGRectMake(w - hI - kArtSize, artY, kArtSize, kArtSize)
-                                 : CGRectMake(hI, artY, kArtSize, kArtSize);
+    CGFloat artW = [self artworkWidth];
+    self.artworkView.frame = rtl ? CGRectMake(w - hI - artW, artY, artW, kArtSize)
+                                 : CGRectMake(hI, artY, artW, kArtSize);
 
     // Center the label block on the artwork's vertical band (not the row), so the
     // asymmetric CC top/bottom padding keeps title/artist aligned with the artwork.
     CGFloat artCenterY = artY + kArtSize / 2.0;
-    CGFloat textW = MAX(0.0, w - hI - kArtSize - 2 * kGap);
-    CGFloat textX = rtl ? kGap : hI + kArtSize + kGap;
+    CGFloat textW = MAX(0.0, w - hI - artW - 2 * kGap);
+    CGFloat textX = rtl ? kGap : hI + artW + kGap;
     // Alignment stays NSTextAlignmentNatural (the UILabel default): the frame is
     // mirrored, but each string keeps its content-driven alignment — an Arabic
     // title right-aligns on an English system and vice versa, exactly as before.
@@ -636,6 +668,12 @@ static BOOL NUViewIsRTL(UIView *v) {
     if (self.activeDir != 0) return;   // don't clobber an in-progress drag
 
     self.hasContent = mgr.active;
+    // Set alongside the content, not in -layoutSubviews: a host layout pass runs during the
+    // post-commit settle and mid-drag, where this method returns early. Reading the source
+    // live there would frame the well for a source whose artwork is not on screen yet.
+    BOOL wide = mgr.prefersWideArtwork;
+    self.currentItem.nuWideArtwork = wide;
+    self.incomingItem.nuWideArtwork = wide;
     [self.currentItem applyTitle:mgr.nextTitle subtitle:mgr.nextSubtitle artwork:mgr.nextArtwork];
     [self setNeedsLayout];
 }

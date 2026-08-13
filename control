@@ -3,7 +3,7 @@ Name: NextUp 3
 Version: 1.0
 Architecture: iphoneos-arm
 Description: See and skip the upcoming track right from the now-playing UI
- Works with Apple Music, Apple Podcasts, YouTube Music and Spotify on
+ Works with Apple Music, Apple Podcasts, YouTube, YouTube Music and Spotify on
  iOS 14.2 - 26, in the Lock Screen, Control Center and Dynamic Island.
 Maintainer: Yves <85767885+Yves000@users.noreply.github.com>
 Author: Yves <85767885+Yves000@users.noreply.github.com>

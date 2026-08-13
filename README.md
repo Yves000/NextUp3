@@ -47,6 +47,7 @@ artwork, so you always know what's coming and can act on it before it plays.
 | Apple Music | full support |
 | Apple Podcasts | full support |
 | YouTube Music | full support, built against 9.28.4 |
+| YouTube | full support, built against 21.32.4. Shows the next queue entry (playlist / mix / "Add to queue"); a standalone video has no queue, so the autoplay suggestion is shown instead — that one can only be played, not skipped or re-ordered. Artwork is 16:9 rather than square |
 | Spotify | full support, built against 9.1.62 |
 
 ## Compatibility
@@ -89,7 +90,7 @@ tweak wrote (settings and play history).
 ## Known issues
 
 - Apple Podcasts is not yet verified on iOS 26 (every other app and surface is).
-- Spotify and YouTube Music integrations are built against specific app versions
+- Spotify, YouTube and YouTube Music integrations are built against specific app versions
   (see table above); an app update can silently break them until the tweak is
   updated.
 
@@ -97,11 +98,12 @@ tweak wrote (settings and play history).
 
 # For developers
 
-NextUp 3 is a Theos tweak. One dylib is injected into six processes and behaves
+NextUp 3 is a Theos tweak. One dylib is injected into seven processes and behaves
 differently per process:
 
 - **Providers** (one per media app, inside `com.apple.Music`,
-  `com.apple.podcasts`, `com.google.ios.youtubemusic`, `com.spotify.client`):
+  `com.apple.podcasts`, `com.google.ios.youtubemusic`, `com.google.ios.youtube`,
+  `com.spotify.client`):
   read that app's live queue, serve the current "next up" (title / artist /
   artwork) over IPC, and perform skip / play-now / previous using the app's own
   in-process queue API.
@@ -123,7 +125,8 @@ instant.
 | Path | What it is |
 |---|---|
 | `hooks/*.x` | Logos hooks, split per process / surface / iOS version — each with its own `%ctor` gate. `NUHooksLockScreen{14,15,18}.x`, `NUHooksControlCenter{Legacy,18,26}.x`, `NUHooksDynamicIsland{16,17}.x`, `NUHooksNowPlaying.x` (shared player plumbing), `NUHooksSpringBoard.x` (swipe-vs-system-gesture arbitration), `NUHooksTCC.x` (iOS ≤ 16 usage-description shim), plus one `NUHooks<App>Provider.x` per app |
-| `NU<App>Provider.{h,m}` | The four providers (`Music`, `Podcast`, `YouTubeMusic`, `Spotify`), all on `NUProviderBase` |
+| `NU<App>Provider.{h,m}` | The five providers (`Music`, `Podcast`, `YouTubeMusic`, `YouTube`, `Spotify`), all on `NUProviderBase` |
+| `NUYouTubeShared.h` | The `YT*`/`YTI*` queue-item and renderer interfaces plus the metadata/artwork-URL helpers shared by the two Google clients |
 | `NUNextUpManager.{h,m}` | Display side: source tracking, per-source LightMessaging client, snapshot state |
 | `NUNextUpRowView.{h,m}` | The row UI: artwork, labels, skip button, swipe carousel |
 | `NUHooksShared.{h,m}` | Cross-hook helpers (process gates, view lookup, CC row layout) |
@@ -172,8 +175,12 @@ The design is table-driven, so a new source stays localized:
    `NUStateBitForKey` case, and its `NUPrefsPublishState()` line. *Easy to miss
    and a silent failure*: without these the Settings switch looks right but
    never takes effect live.
-4. **`prefs/Resources/Root.plist`** — one `PSSwitchCell` in the "Apps" group
-   (`key` = the same `enabled<X>` string from `NUAppPrefKeyForSource`).
+4. **Settings pane** — one `PSSwitchCell` in the "Apps" group of
+   `prefs/Resources/Root.plist` (`key` = the same `enabled<X>` string from
+   `NUAppPrefKeyForSource`), plus the key's entries in
+   `prefs/NUPrefsRootListController.m` (`NUBundleIDForKey` and
+   `NUAppToggleKeys()`) — those drive the row icon and the "hide the toggle when
+   the app isn't installed" filtering.
 5. **Provider** — new `NU<X>Provider.{h,m}` on `NUProviderBase` plus
    `hooks/NUHooks<X>Provider.x` (its `%ctor` calls `NUApplySandbox()` before
    gating on `NUIs<X>()`), and add `NUIs<X>()` to `NUHooksShared.h`.
@@ -182,8 +189,9 @@ The design is table-driven, so a new source stays localized:
 6. **Plumbing** — `NextUp3.plist` (bundle id), `Makefile` (source files +
    `INSTALL_TARGET_PROCESSES`, which takes *executable* names, not bundle ids),
    the libSandy profile (register/lookup extensions for the new service name and
-   the app's signing identifier in `AllowedProcesses`), and `control`'s
-   description.
+   the app's signing identifier in `AllowedProcesses`), the `killall` lists in
+   `layout/DEBIAN/postinst` and `postrm` (executable names again), and
+   `control`'s description.
 
 ## Credits
 

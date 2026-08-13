@@ -15,7 +15,7 @@ export ARCHS  := arm64 arm64e
 export THEOS_PACKAGE_SCHEME := roothide
 endif
 
-INSTALL_TARGET_PROCESSES = MediaRemoteUI Music Podcasts SpringBoard YouTubeMusic Spotify
+INSTALL_TARGET_PROCESSES = MediaRemoteUI Music Podcasts SpringBoard YouTubeMusic YouTube Spotify
 
 include $(THEOS)/makefiles/common.mk
 
@@ -32,6 +32,7 @@ NextUp3_FILES = \
 	hooks/NUHooksMusicProvider.x \
 	hooks/NUHooksPodcastProvider.x \
 	hooks/NUHooksYouTubeMusicProvider.x \
+	hooks/NUHooksYouTubeProvider.x \
 	hooks/NUHooksSpotifyProvider.x \
 	hooks/NUHooksNowPlaying.x \
 	hooks/NUHooksControlCenterLegacy.x \
@@ -44,7 +45,7 @@ NextUp3_FILES = \
 	hooks/NUHooksLockScreen14.x \
 	hooks/NUHooksLockScreen18.x \
 	hooks/NUHooksTCC.x \
-	NUHooksShared.m NULogFile.m NUProviderBase.m NUMusicProvider.m NUPodcastProvider.m NUYouTubeMusicProvider.m NUSpotifyProvider.m NUNextUpManager.m NUNextUpRowView.m NUPrefs.m
+	NUHooksShared.m NULogFile.m NUProviderBase.m NUMusicProvider.m NUPodcastProvider.m NUYouTubeMusicProvider.m NUYouTubeProvider.m NUSpotifyProvider.m NUNextUpManager.m NUNextUpRowView.m NUPrefs.m
 # LIGHTMESSAGING_TIMEOUT (ms) bounds the sync mach round-trip in
 # LMConnectionSendTwoWay. Without it the display's main-thread query blocks
 # forever against a suspended app, whose runloop never services the port, and

@@ -2,5 +2,5 @@
 # Restart the injected media processes so the new dylib loads on next launch.
 # SpringBoard is left to the package manager's respring prompt (it hosts the
 # lock-screen / Dynamic Island hooks; MediaRemoteUI relaunches on demand).
-killall Music Podcasts YouTubeMusic Spotify MediaRemoteUI 2>/dev/null || true
+killall Music Podcasts YouTubeMusic YouTube Spotify MediaRemoteUI 2>/dev/null || true
 exit 0
