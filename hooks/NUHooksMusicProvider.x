@@ -55,6 +55,30 @@
     [[NUMusicProvider shared] queueChanged];
 }
 
+// iOS 26 funnels every queue mutation through an edit ending in -_commitEdit:, and the
+// current item changes via -playerItemDidBecomeCurrent: rather than
+// -_currentItemDidChangeFromItem:toItem: — the selectors above fire only while the
+// queue is first built (iOS 26.0.1, Podcasts), so later edits would never reach the
+// display without these. Logos skips whichever selector is absent, so these are inert
+// on the versions the hooks above cover.
+- (void)_commitEdit:(id)edit {
+    %orig;
+    [[NUMusicProvider shared] captureController:(id)self];
+    [[NUMusicProvider shared] queueChanged];
+}
+
+- (void)playerItemDidBecomeCurrent:(id)item {
+    %orig;
+    [[NUMusicProvider shared] captureController:(id)self];
+    [[NUMusicProvider shared] queueChanged];
+}
+
+- (void)upNextBehaviorDidChange {
+    %orig;
+    [[NUMusicProvider shared] captureController:(id)self];
+    [[NUMusicProvider shared] queueChanged];
+}
+
 %end
 
 %end // MusicProvider

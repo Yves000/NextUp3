@@ -136,6 +136,17 @@ static const char *NUPrevNotificationForSource(NUSource s) {
 @property (nonatomic) BOOL nowPlayingTrackingActive; // MediaRemote registration done
 @property (nonatomic) CFTimeInterval lastQueryStamp;
 @property (nonatomic) NUSource lastQuerySource;
+// Source whose provider let the last roundtrip time out or run long (suspended app:
+// the mach port stays registered but the runloop is frozen, so every query burns the
+// full LIGHTMESSAGING_TIMEOUT). While set, -start routes its query through the
+// background requery instead of the synchronous roundtrip — the throttle stamp above
+// is written only on success, so across timeouts it never engages, and the
+// appear-time query plus the settle ticks (NUHooksNowPlaying) would stack several
+// timeout-long main-thread stalls into every Control Center open. Cleared by any
+// COMPLETED roundtrip: an answer or a hard error (dead port) returns immediately;
+// only the timeout must stay off the main thread.
+@property (nonatomic) NUSource unresponsiveSource; // NUSourceNone = none
+@property (nonatomic) BOOL queryCoalescePending;   // a burst-collapsing query is already scheduled
 @end
 
 @implementation NUNextUpManager
@@ -168,7 +179,7 @@ static const char *NUPrevNotificationForSource(NUSource s) {
         // Re-query whenever the provider signals a queue/next-up change.
         int token; // process-lifetime registration; token intentionally not kept
         notify_register_dispatch(kNUChangedNotification, &token, dispatch_get_main_queue(), ^(int t) {
-            [self query];
+            [self queryCoalesced];
         });
         // Observe prefs so a toggle takes effect live (re-query + re-broadcast the
         // show/grow gates) and a disabled tweak generates zero IPC / media RPCs.
@@ -189,7 +200,33 @@ static const char *NUPrevNotificationForSource(NUSource s) {
     // (NUHooksNowPlaying) that would refetch an identical snapshot.
     if (self.lastQueryStamp > 0 && self.source == self.lastQuerySource
         && CACurrentMediaTime() - self.lastQueryStamp < 0.25) return;
+    // A source that just timed out is refreshed off the main thread instead: the
+    // provider is most likely still suspended and the sync roundtrip below would
+    // block for the full timeout again. The display keeps the last snapshot
+    // meanwhile (same policy as the timeout path in -query).
+    if (self.source != NUSourceNone && self.source == self.unresponsiveSource) {
+        [self scheduleTimeoutRequery];
+        return;
+    }
     [self query];
+}
+
+// A roundtrip longer than this is too expensive to keep on the main thread — one
+// 60Hz frame is 16.7ms, so this is already a dropped frame.
+static const CFTimeInterval kNUSlowRoundtrip = 0.03;
+
+// Provider change signals arrive in bursts — a single queue edit can raise several, and
+// each -query is a synchronous mach roundtrip on the main thread. Collapse a burst into
+// one query. Only for the notification path: -start stays synchronous because `active`
+// has to be set before the platter is measured.
+- (void)queryCoalesced {
+    if (self.queryCoalescePending) return;
+    self.queryCoalescePending = YES;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.05 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        self.queryCoalescePending = NO;
+        [self query];
+    });
 }
 
 // Query the Music provider's LightMessaging service for the current next-up.
@@ -205,14 +242,34 @@ static const char *NUPrevNotificationForSource(NUSource s) {
     LMConnection *conn = NUConnectionForSource(self.source);
     if (!conn) { [self applyDictionary:nil]; return; } // no supported media app on screen
     LMResponseBuffer buffer;
+    CFTimeInterval sent = CACurrentMediaTime();
     kern_return_t kr = LMConnectionSendTwoWay(conn, 0, NULL, 0, &buffer);
+    CFTimeInterval elapsed = CACurrentMediaTime() - sent;
     if (kr == MACH_SEND_TIMED_OUT || kr == MACH_RCV_TIMED_OUT) {
         // Music exists but didn't answer in time (suspended or busy). Keep the
         // last snapshot — dropping to inactive would hide the row / flash the
         // placeholder for no reason — and retry once off the UI-critical path.
+        // Mark the source so -start stops paying the sync timeout for it too.
         NULog("client: query timed out kr=%d — keeping last snapshot", kr);
+        self.unresponsiveSource = self.source;
         [self scheduleTimeoutRequery];
         return;
+    }
+    // A slow answer stalls the main thread just as a timeout does, only shorter — a
+    // suspended app is slow to wake for every query. Mark a slow source so -start
+    // serves the cached snapshot and refreshes in the background instead of paying
+    // the stall on every open; a fast answer clears the mark.
+    self.unresponsiveSource = (elapsed > kNUSlowRoundtrip) ? self.source : NUSourceNone;
+    if (kr != 0) {
+        // A refused lookup is normally "the media app isn't running"
+        // (BOOTSTRAP_UNKNOWN_SERVICE), but a process without the libSandy profile gets
+        // the same failure (BOOTSTRAP_NOT_PRIVILEGED): SpringBoard's %ctor runs before
+        // libSandy's service at boot, and without this retry the row would stay dead
+        // until a respring. Re-apply until it sticks, then stop — the second roundtrip
+        // must not be paid on every "app not running" query, which must stay cheap.
+        static BOOL sandboxRetried = NO;
+        if (!sandboxRetried && (sandboxRetried = NUApplySandbox()))
+            kr = LMConnectionSendTwoWay(conn, 0, NULL, 0, &buffer);
     }
     if (kr != 0) {
         NULog("client: query kr=%d (provider not up?)", kr);
@@ -238,10 +295,13 @@ static const char *NUPrevNotificationForSource(NUSource s) {
     dispatch_once(&once, ^{ q = dispatch_queue_create("com.yves.nextup3.requery", DISPATCH_QUEUE_SERIAL); });
     // 1s retry delay: give the provider time to re-register after a dead-name send.
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), q, ^{
+        // The source this retry serves — main can switch it mid-flight, and then the
+        // reply below must neither be applied to nor mark the NEW source.
+        NUSource qsrc = self.source;
         // Own connection (fresh lookup): the shared gConn* isn't safe to share with a
         // concurrent main-thread query — LMMachMsg mutates its serverPort on a
         // dead-name send. Retries are rare, so the extra lookup is negligible.
-        LMConnection *base = NUConnectionForSource(self.source);
+        LMConnection *base = NUConnectionForSource(qsrc);
         if (!base) { dispatch_async(dispatch_get_main_queue(), ^{ pending = NO; [self applyDictionary:nil]; }); return; }
         LMConnection conn = *base;          // copy the service name; use a fresh port so
         conn.serverPort = MACH_PORT_NULL;   // we don't share serverPort with the main-thread query
@@ -259,7 +319,15 @@ static const char *NUPrevNotificationForSource(NUSource s) {
         }
         dispatch_async(dispatch_get_main_queue(), ^{
             pending = NO;
-            if (apply) [self applyDictionary:dict];
+            if (self.source != qsrc) return; // switched away — the switch path re-queried already
+            if (apply) {
+                self.unresponsiveSource = NUSourceNone;
+                [self applyDictionary:dict];
+            } else {
+                // Still timing out: keep -start off the sync path; the provider's own
+                // "changed" notify (or the next background retry) lifts the mark.
+                self.unresponsiveSource = qsrc;
+            }
         });
     });
 }

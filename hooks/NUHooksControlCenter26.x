@@ -80,6 +80,12 @@ static NUNextUpRowView *NUCC26EnsureRow(UIView *npView) {
     %orig;
     [[NSNotificationCenter defaultCenter] removeObserver:self
                                                     name:NUNextUpDidChangeNotification object:nil];
+    // Drop the process-wide expanded stamp with the module: dismissing Control Center
+    // while the card is expanded need not deliver a collapse transition, and the next
+    // presentation builds a fresh controller that would inherit the stale YES and stamp
+    // the collapsed tile as expanded.
+    objc_setAssociatedObject(NUNextUpManager.sharedManager, kNUCCExpandedKey,
+                             nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 // The expanded gate. `isExpanded` is unreadable from ObjC on iOS 26 (see the file
@@ -90,12 +96,20 @@ static NUNextUpRowView *NUCC26EnsureRow(UIView *npView) {
 - (void)willTransitionToExpandedContentMode:(BOOL)expanded {
     %orig;
     objc_setAssociatedObject(self, kNUCCExpandedKey, @(expanded), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    // Process-wide too: the route picker re-hosts the card under a controller that
+    // never sees a transition (see NUCCModuleExpanded).
+    objc_setAssociatedObject(NUNextUpManager.sharedManager, kNUCCExpandedKey,
+                             @(expanded), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     [self.viewIfLoaded setNeedsLayout];
 }
 
 - (void)didTransitionToExpandedContentMode:(BOOL)expanded {
     %orig;
     objc_setAssociatedObject(self, kNUCCExpandedKey, @(expanded), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    // Process-wide too: the route picker re-hosts the card under a controller that
+    // never sees a transition (see NUCCModuleExpanded).
+    objc_setAssociatedObject(NUNextUpManager.sharedManager, kNUCCExpandedKey,
+                             @(expanded), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     [self.viewIfLoaded setNeedsLayout];
     NULog("CC26 expanded=%d", expanded);
 }
@@ -131,9 +145,10 @@ static NUNextUpRowView *NUCC26EnsureRow(UIView *npView) {
     BOOL expanded = NUCCModuleExpanded(self);
     NUSetViewCCExpanded(self, expanded);
     [row refreshFromManager];
-    BOOL show = NUViewShowsRow(self);
     %orig;                       // Apple's natural layout
-    NUCCLayoutRow(self, show);   // shared with iOS 18
+    // Computed after %orig, which is what collapses the card into the route picker's
+    // 62pt pill — a verdict taken before it describes the previous frame's geometry.
+    NUCCLayoutRow(self, NUViewShowsRow(self));   // shared with iOS 18
 }
 
 // The route picker expands out of a sibling view; while it is open our extra row

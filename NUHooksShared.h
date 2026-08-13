@@ -253,6 +253,21 @@ static inline BOOL NUCCRoutingViewOpen(UIView *nowPlayingView) {
     return NO;
 }
 
+// iOS 26 renders each route-picker entry as another SESSION built from the same Swift
+// classes as the module's own card, so the layout hooks run on every entry too.
+// Nothing structural identifies the real card: card and entries share the ancestor
+// chain
+//
+//   MediaControlsModuleNowPlayingView < MediaControlsModuleSessionView < UIView
+//     < RoutePickerSessionsView<MediaControlsModuleSessionView> < MediaControlsModuleView
+//
+// and the same sibling set (each entry is a self-contained mini-module, picker button
+// included), and mount order is not stable — after a trip through the picker the
+// module's own session is no longer first, so an index test misidentifies the card.
+// Size is the invariant that holds in every state: entries are 62pt pills (as is the
+// module's own card while the picker is up) against a row that needs 111.5pt, so
+// "does the row fit" decides — enforced in NUCCLayoutRow.
+
 static inline BOOL NUCCRoutingOpen(UIView *nowPlayingView) {
     if ([objc_getAssociatedObject(nowPlayingView, kNURouteClosingKey) boolValue]) return NO;  // force show
     if ([objc_getAssociatedObject(nowPlayingView, kNURouteOpeningKey) boolValue]) return YES; // force hide
@@ -291,9 +306,15 @@ static inline BOOL NUCCModuleExpanded(UIView *view) {
             // above fails and the row would never show. Fall back to the state our own
             // -didTransitionToExpandedContentMode: hook stamps on the controller, which
             // is the same signal Apple drives the transition from.
-            return [objc_getAssociatedObject(mod, kNUCCExpandedKey) boolValue];
+            id stamp = objc_getAssociatedObject(mod, kNUCCExpandedKey);
+            if (stamp) return [stamp boolValue];
         }
-    return NO;
+    // The iOS 26 route picker re-hosts the card: the responder chain then misses the
+    // module controller, or reaches one that never saw a transition — and an unstamped
+    // controller must not read as "collapsed" on an expanded card. Fall back to the
+    // last transition seen in this process (only one media module is ever up), held on
+    // the manager singleton so every hook file reads the same value.
+    return [objc_getAssociatedObject(NUNextUpManager.sharedManager, kNUCCExpandedKey) boolValue];
 }
 
 // The now-playing card's artwork and full-card backdrop, by class name — the two
@@ -429,10 +450,16 @@ static inline void NUCCLayoutRow(UIView *npView, BOOL show) {
 
     CGFloat rowH  = NURowHeightForView(npView);
     CGFloat viewH = npView.bounds.size.height;
+
     // Sit the separator a small gap below the native content — matched to the vertical
     // gap Apple leaves between the volume slider and the route button (~18pt) — rather
     // than pinning the row to the card bottom, which leaves an uneven larger gap.
     CGFloat gap = 18.0;
+    // A card shorter than the row cannot host it — hide. The overflow path below
+    // reclaims a few points from the artwork, never a whole card collapsed into the
+    // iOS 26 route picker's 62pt pill: there contentBottom still measures a stale
+    // 337.5pt suggestions view, driving the row to a negative origin over the artwork.
+    if (viewH < rowH + gap) { row.alpha = 0.0; return; }
     CGFloat rowTop = contentBottom + gap;
     CGFloat overflow = (rowTop + rowH) - viewH;
 

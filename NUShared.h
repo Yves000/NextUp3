@@ -141,37 +141,50 @@ static inline uint64_t NUSuggestingGet(void) {
 // LM call. Loaded via dlopen so we don't need a link-time tbd.
 #define kNUSandyProfile "com.yves.nextup3"
 
-static inline void NUApplySandbox(void) {
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
+// Returns whether the profile is in effect for this process. The RESULT is cached,
+// not the attempt: at boot SpringBoard starts before libSandy's service, so the
+// %ctor-time apply fails — remembered as "done", that would leave every mach lookup
+// denied for the life of the process (row dead on every surface until a respring).
+// A failed apply stays retryable; NUNextUpManager retries from its query path once
+// a lookup is refused.
+static inline BOOL NUApplySandbox(void) {
+    static BOOL applied = NO;
+    static BOOL announced = NO;
+    if (applied) return YES;
+
+    if (!announced) {
+        announced = YES;
         // First line every injected process writes — the "are we loaded at all,
         // and into what" marker for a new iOS version / new jailbreak.
         NULog("ctor: proc=%{public}@ os=%{public}@",
               NSProcessInfo.processInfo.processName,
               NSProcessInfo.processInfo.operatingSystemVersionString);
-        void *h = dlopen("libsandy.dylib", RTLD_LAZY);
-        // roothide's jbroot is randomised; resolve libsandy relative to our own
-        // dylib path (…/<jbroot>/usr/lib/TweakInject/NextUp3.dylib).
-        if (!h) {
-            Dl_info info; memset(&info, 0, sizeof(info));
-            if (dladdr((const void *)&NUApplySandbox, &info) && info.dli_fname) {
-                NSString *self = @(info.dli_fname);
-                NSRange r = [self rangeOfString:@"/usr/lib/" options:NSBackwardsSearch];
-                if (r.location != NSNotFound) {
-                    NSString *lib = [[self substringToIndex:NSMaxRange(r)] stringByAppendingString:@"libsandy.dylib"];
-                    h = dlopen(lib.fileSystemRepresentation, RTLD_LAZY);
-                    NULog("libSandy dlopen(%{public}@) = %p", lib, h);
-                }
+    }
+
+    void *h = dlopen("libsandy.dylib", RTLD_LAZY);
+    // roothide's jbroot is randomised; resolve libsandy relative to our own
+    // dylib path (…/<jbroot>/usr/lib/TweakInject/NextUp3.dylib).
+    if (!h) {
+        Dl_info info; memset(&info, 0, sizeof(info));
+        if (dladdr((const void *)&NUApplySandbox, &info) && info.dli_fname) {
+            NSString *self = @(info.dli_fname);
+            NSRange r = [self rangeOfString:@"/usr/lib/" options:NSBackwardsSearch];
+            if (r.location != NSNotFound) {
+                NSString *lib = [[self substringToIndex:NSMaxRange(r)] stringByAppendingString:@"libsandy.dylib"];
+                h = dlopen(lib.fileSystemRepresentation, RTLD_LAZY);
+                NULog("libSandy dlopen(%{public}@) = %p", lib, h);
             }
         }
-        int (*applyProfile)(const char *) = h ? (int (*)(const char *))dlsym(h, "libSandy_applyProfile") : NULL;
-        if (applyProfile) {
-            int r = applyProfile(kNUSandyProfile);
-            NULog("libSandy applyProfile(%s) = %d (0=ok)", kNUSandyProfile, r);
-        } else {
-            NULog("libSandy not available (h=%p)", h);
-        }
-    });
+    }
+    int (*applyProfile)(const char *) = h ? (int (*)(const char *))dlsym(h, "libSandy_applyProfile") : NULL;
+    if (applyProfile) {
+        int r = applyProfile(kNUSandyProfile);
+        NULog("libSandy applyProfile(%s) = %d (0=ok)", kNUSandyProfile, r);
+        applied = (r == 0);
+    } else {
+        NULog("libSandy not available (h=%p)", h);
+    }
+    return applied;
 }
 
 // Keys in the archived next-up dictionary.

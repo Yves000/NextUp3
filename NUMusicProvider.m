@@ -322,6 +322,28 @@ static NSString *NUHistoryPlistPath(void) {
     return nil;
 }
 
+// The tracklist to build an insert command on. -liveTracklist requires the snapshot's
+// playing item to be the item playing now — the history reader needs that (it indexes
+// backwards from it), but an insert does not: -insertAfterPlayingItemWithPlaybackIntent:
+// resolves the playing item against the live queue when the request is performed. The
+// captured responses can lag the queue (iOS 26 Podcasts), where requiring the match
+// would fail every insert — fall back to the newest response carrying a real queue,
+// the same set the skip path resolves its items against.
+- (MPCPlayerResponseTracklist *)insertableTracklist {
+    MPCPlayerResponseTracklist *strict = [self liveTracklist];
+    if (strict) return strict;
+
+    for (MPCPlayerResponse *response in [self.capturedResponses copy]) {
+        @try {
+            MPCPlayerResponseTracklist *tl = response.tracklist;
+            if (tl.items.totalItemCount <= 1) continue;
+            NULog("tracklist: no playing-item match — using newest queue response");
+            return tl;
+        } @catch (__unused NSException *e) {}
+    }
+    return nil;
+}
+
 // depth 1 = the previous track, 2 = the one before that, … (backward through history).
 - (MPCPlayerResponseItem *)historyItemAtDepth:(long long)depth {
     if (depth < 1) return nil;
@@ -845,7 +867,7 @@ static const NSTimeInterval kNUArtworkChainStaleInterval = 20.0;
         NSDictionary *back = [self previousInfoAtDepth:1];
         NSString *uuid = back[@"episodeUUID"];
         if (uuid.length == 0) { NULog("pc prev: no episode uuid in history"); return; }
-        MPCPlayerResponseTracklist *tl = [self liveTracklist];
+        MPCPlayerResponseTracklist *tl = [self insertableTracklist];
         if (!tl) { NULog("pc prev: no live tracklist"); return; }
 
         NSDictionary *tokenPlist = @{
