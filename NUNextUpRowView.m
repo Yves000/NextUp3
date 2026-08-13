@@ -2,6 +2,7 @@
 #import "NUNextUpManager.h"
 #import "NUShared.h"
 #import "NULocalization.h"
+#import <objc/runtime.h>
 
 // 14pt matches Apple's own now-playing artwork inset from the platter edge
 // (measured 42px @3x). Used for horizontal inset, vertical padding, and the
@@ -252,13 +253,221 @@ static BOOL NUViewIsRTL(UIView *v) {
     return v.effectiveUserInterfaceLayoutDirection == UIUserInterfaceLayoutDirectionRightToLeft;
 }
 
+#pragma mark - NUMarqueeLabel (scrolling text label)
+
+// Long text scrolls instead of truncating, the way MRUNowPlayingLabelView does it
+// in the player above: an MPUMarqueeView (MPUFoundation) holding a plain UILabel
+// as its content, so NURowColor, NUScaledFont and NSTextAlignmentNatural keep
+// applying unchanged.
+//
+// MPUMarqueeView and not MediaControls' MRUMarqueeLabel: that one exists only
+// from iOS 16, MPUMarqueeView from iOS 13. Neither framework is linked — both are
+// resident in MediaRemoteUI and SpringBoard, and a missing class leaves the
+// truncating label.
+//
+// `2` suffix: shadow redeclaration, reached only through objc_getClass.
+@interface MPUMarqueeView2 : UIView
+@property (nonatomic, readonly) UIView *contentView;
+@property (getter=isMarqueeEnabled, nonatomic) BOOL marqueeEnabled;
+@property (nonatomic) CGSize contentSize;
+@property (nonatomic) UIEdgeInsets fadeEdgeInsets;
+- (void)addCoordinatedMarqueeView:(id)view;
+- (void)resetMarqueePosition;
+@end
+
+// Retried while nil rather than resolved once: SpringBoard loads MediaControls,
+// and with it MPUFoundation, on demand, so the class can still be missing on the
+// first layout pass.
+static Class NUMarqueeViewClass(void) {
+    static Class cls;
+    if (!cls) cls = objc_getClass("MPUMarqueeView");
+    return cls;
+}
+
+// Overhang past the text column at both ends of a scrolling label, and the width
+// of the fade drawn over it: the text runs into the overhang before it dissolves,
+// so nothing is dimmed while it stands still. It eats into the kGap gaps either
+// side of the column and must stay below kGap. Zero while the text fits.
+//
+// A layer mask rather than MPUMarqueeView's own -fadeEdgeInsets, which insets the
+// marquee's contentView and so moves the text out of line with the caption.
+static const CGFloat kMarqueeFade = 8.0;
+
+@interface NUMarqueeLabel : UIView
+@property (nonatomic, strong, readonly) UILabel *label;
+@property (nonatomic, copy) NSString *text;
+@property (nonatomic, strong) UIFont *font;
+@property (nonatomic, strong) UIColor *textColor;
+// Couples this label's scroll to another's, as MRUNowPlayingLabelView couples its
+// title and subtitle. A no-op until both marquees exist.
+- (void)coordinateWith:(NUMarqueeLabel *)other;
+- (void)setMarqueeRunning:(BOOL)running;
+- (void)resetMarquee;
+@end
+
+@implementation NUMarqueeLabel {
+    MPUMarqueeView2 *_marquee;
+    CAGradientLayer *_fadeMask;
+    BOOL _running;
+    BOOL _coordinated;
+    BOOL _loggedMiss;
+}
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        // The scrolling marquee overhangs these bounds by kMarqueeFade at both
+        // ends; the fade mask bounds it instead.
+        self.clipsToBounds = NO;
+        _label = [[UILabel alloc] init];
+        // The fallback: with no marquee, or under Reduce Motion, the label gets
+        // the visible width and ellipsizes.
+        _label.lineBreakMode = NSLineBreakByTruncatingTail;
+        [self addSubview:_label];
+    }
+    return self;
+}
+
+- (MPUMarqueeView2 *)nu_marquee {
+    if (_marquee) return _marquee;
+    Class cls = NUMarqueeViewClass();
+    if (!cls) return nil;
+    MPUMarqueeView2 *m = nil;
+    @try { m = [[cls alloc] initWithFrame:self.bounds]; }
+    @catch (__unused NSException *e) { m = nil; }
+    // Interface drift on some future version must degrade to truncation, not crash.
+    UIView *content = ([m respondsToSelector:@selector(contentView)] &&
+                       [m respondsToSelector:@selector(setMarqueeEnabled:)] &&
+                       [m respondsToSelector:@selector(setContentSize:)]) ? m.contentView : nil;
+    if (!content) {
+        if (!_loggedMiss) {
+            _loggedMiss = YES;
+            NULog("row: MPUMarqueeView unusable — labels truncate");
+        }
+        return nil;
+    }
+    m.userInteractionEnabled = NO;
+    [content addSubview:_label];
+    [self addSubview:m];
+    _marquee = m;
+    return _marquee;
+}
+
+- (NSString *)text { return _label.text; }
+
+// Idempotent: the row re-applies its snapshot from every host layout pass (iOS 26
+// Control Center and the iOS 18 lock screen both call -refreshFromManager from
+// -layoutSubviews), and a repeated string would restart the scroll before it ever
+// got past the start delay.
+- (void)setText:(NSString *)text {
+    NSString *old = _label.text;
+    if (old == text || (old && text && [old isEqualToString:text])) return;
+    _label.text = text;
+    [self resetMarquee];
+    [self setNeedsLayout];
+}
+
+- (UIFont *)font { return _label.font; }
+- (void)setFont:(UIFont *)font { _label.font = font; [self setNeedsLayout]; }
+- (UIColor *)textColor { return _label.textColor; }
+- (void)setTextColor:(UIColor *)textColor { _label.textColor = textColor; }
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    CGRect b = self.bounds;
+    // A marquee is autonomous motion, which Reduce Motion gates; the marquee is
+    // then never built at all.
+    MPUMarqueeView2 *m = NUReduceMotion() ? nil : [self nu_marquee];
+    if (!m) {
+        if (_label.superview != self) [self addSubview:_label];
+        _marquee.hidden = YES;
+        _label.frame = b;
+        [self nu_applyFadeWithOverhang:0.0];   // truncating: no fade
+        return;
+    }
+    _marquee.hidden = NO;
+    if (_label.superview != m.contentView) [m.contentView addSubview:_label];
+
+    CGSize fit = [_label sizeThatFits:CGSizeMake(CGFLOAT_MAX, b.size.height)];
+    CGFloat textW = ceil(fit.width);
+    BOOL fits = textW <= b.size.width;
+    // The label gets its own text width so there is something to scroll; at the
+    // visible width UIKit would ellipsize it again. contentSize is set explicitly
+    // rather than left to viewForContentSize.
+    CGFloat w = fits ? b.size.width : textW;
+    CGFloat f = fits ? 0.0 : kMarqueeFade;
+    // The marquee overhangs the column by f at both ends and the label is pushed
+    // back by f inside it, so the text still starts on the column.
+    m.frame = CGRectMake(-f, 0, b.size.width + 2 * f, b.size.height);
+    _label.frame = CGRectMake(f, 0, w, b.size.height);
+    m.contentSize = CGSizeMake(w + 2 * f, b.size.height);
+    // Apple's own inset stays zero; the fade is the mask below.
+    if ([m respondsToSelector:@selector(setFadeEdgeInsets:)]) m.fadeEdgeInsets = UIEdgeInsetsZero;
+    [self nu_applyFadeWithOverhang:f];
+    [self nu_applyRunning];
+}
+
+// Same construction as the row's trackMask: clear → white → white → clear, with
+// the ramps over the overhang only, so the column itself stays opaque and only
+// text that has scrolled out of it dissolves. Symmetric, so RTL needs no
+// mirroring. Also bounds the overhanging marquee, which does not clip to this
+// view (see -initWithFrame:).
+- (void)nu_applyFadeWithOverhang:(CGFloat)f {
+    CGFloat width = self.bounds.size.width + 2 * f;
+    if (f <= 0 || width <= 0) {
+        if (_fadeMask) { self.layer.mask = nil; _fadeMask = nil; }
+        return;
+    }
+    if (!_fadeMask) {
+        _fadeMask = [CAGradientLayer layer];
+        _fadeMask.startPoint = CGPointMake(0.0, 0.5);
+        _fadeMask.endPoint = CGPointMake(1.0, 0.5);
+        _fadeMask.colors = @[ (id)[UIColor clearColor].CGColor, (id)[UIColor whiteColor].CGColor,
+                              (id)[UIColor whiteColor].CGColor, (id)[UIColor clearColor].CGColor ];
+        self.layer.mask = _fadeMask;
+    }
+    // No implicit animation on the mask geometry — it is re-set on every pass.
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _fadeMask.frame = CGRectMake(-f, 0, width, self.bounds.size.height);
+    _fadeMask.locations = @[ @0, @(f / width), @(1.0 - f / width), @1 ];
+    [CATransaction commit];
+}
+
+- (void)nu_applyRunning {
+    if (!_marquee) return;
+    BOOL on = _running && !NUReduceMotion();
+    if (_marquee.isMarqueeEnabled != on) _marquee.marqueeEnabled = on;
+}
+
+- (void)setMarqueeRunning:(BOOL)running {
+    if (_running == running) return;
+    _running = running;
+    [self nu_applyRunning];
+}
+
+- (void)resetMarquee {
+    if ([_marquee respondsToSelector:@selector(resetMarqueePosition)]) [_marquee resetMarqueePosition];
+}
+
+- (void)coordinateWith:(NUMarqueeLabel *)other {
+    if (_coordinated) return;
+    MPUMarqueeView2 *theirs = other ? other->_marquee : nil;
+    if (!_marquee || !theirs) return;   // settles on a later layout pass
+    _coordinated = YES;
+    if (![_marquee respondsToSelector:@selector(addCoordinatedMarqueeView:)]) return;
+    @try { [_marquee addCoordinatedMarqueeView:theirs]; } @catch (__unused NSException *e) {}
+}
+
+@end
+
 #pragma mark - NUItemView (one "UP NEXT" card: artwork + labels)
 
 @interface NUItemView : UIView
 @property (nonatomic, strong) UIImageView *artworkView;
 @property (nonatomic, strong) UILabel *captionLabel;
-@property (nonatomic, strong) UILabel *titleLabel;
-@property (nonatomic, strong) UILabel *artistLabel;
+@property (nonatomic, strong) NUMarqueeLabel *titleLabel;
+@property (nonatomic, strong) NUMarqueeLabel *artistLabel;
 // Geometry pushed by the row so both cards match the active (lock-screen or CC) style.
 @property (nonatomic) CGFloat nuHInset;      // artwork/label leading inset
 @property (nonatomic) CGFloat nuArtworkTop;  // artwork top; skip + labels align to its band
@@ -269,6 +478,8 @@ static BOOL NUViewIsRTL(UIView *v) {
 @property (nonatomic, copy, readonly) NSString *itemSubtitle;
 @property (nonatomic, strong, readonly) UIImage *itemArtwork;
 - (void)applyTitle:(NSString *)title subtitle:(NSString *)subtitle artwork:(UIImage *)artwork;
+- (void)setMarqueeRunning:(BOOL)running;
+- (void)resetMarquee;
 @end
 
 @implementation NUItemView
@@ -303,17 +514,15 @@ static BOOL NUViewIsRTL(UIView *v) {
         _captionLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
         [self addSubview:_captionLabel];
 
-        _titleLabel = [[UILabel alloc] init];
+        _titleLabel = [[NUMarqueeLabel alloc] init];
         _titleLabel.textColor = NURowColor(0.95);
-        _titleLabel.lineBreakMode = NSLineBreakByTruncatingTail;
         [self addSubview:_titleLabel];
 
-        _artistLabel = [[UILabel alloc] init];
+        _artistLabel = [[NUMarqueeLabel alloc] init];
         // iOS 15's main-track subtitle is bright white, so lift ours to match there;
         // iOS 16/17 keep the dimmer 0.6 they were tuned to.
         _artistLabel.textColor = NURowColor(
             NSProcessInfo.processInfo.operatingSystemVersion.majorVersion < 16 ? 0.9 : 0.6);
-        _artistLabel.lineBreakMode = NSLineBreakByTruncatingTail;
         [self addSubview:_artistLabel];
 
         [self applyScaledFonts];
@@ -323,6 +532,12 @@ static BOOL NUViewIsRTL(UIView *v) {
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(contentSizeCategoryChanged:)
                                                      name:UIContentSizeCategoryDidChangeNotification
+                                                   object:nil];
+        // Toggling Reduce Motion swaps the labels between scrolling and
+        // truncating; nothing else marks them dirty, so do it here.
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(reduceMotionChanged:)
+                                                     name:UIAccessibilityReduceMotionStatusDidChangeNotification
                                                    object:nil];
     }
     return self;
@@ -341,6 +556,21 @@ static BOOL NUViewIsRTL(UIView *v) {
 - (void)contentSizeCategoryChanged:(NSNotification *)note {
     [self applyScaledFonts];
     [self setNeedsLayout];
+}
+
+- (void)reduceMotionChanged:(NSNotification *)note {
+    [self.titleLabel setNeedsLayout];
+    [self.artistLabel setNeedsLayout];
+}
+
+- (void)setMarqueeRunning:(BOOL)running {
+    [self.titleLabel setMarqueeRunning:running];
+    [self.artistLabel setMarqueeRunning:running];
+}
+
+- (void)resetMarquee {
+    [self.titleLabel resetMarquee];
+    [self.artistLabel resetMarquee];
 }
 
 - (void)applyTitle:(NSString *)title subtitle:(NSString *)subtitle artwork:(UIImage *)artwork {
@@ -432,6 +662,9 @@ static BOOL NUViewIsRTL(UIView *v) {
     self.captionLabel.frame = CGRectMake(textX, top, textW, capH);
     self.titleLabel.frame = CGRectMake(textX, top + capH, textW, titleH);
     self.artistLabel.frame = CGRectMake(textX, top + capH + titleH, textW, artistH);
+    // Both marquees exist only after their own first layout, so this settles on a
+    // later pass.
+    [self.titleLabel coordinateWith:self.artistLabel];
 }
 
 @end
@@ -648,6 +881,40 @@ static BOOL NUViewIsRTL(UIView *v) {
     self.currentItem.center = c;
     self.incomingItem.bounds = CGRectMake(0, 0, contentW, h);
     self.incomingItem.center = c;
+
+    [self nu_updateMarquee];
+}
+
+#pragma mark - Marquee gating
+
+// Scrolling text is autonomous motion: it runs only on a row that is on screen,
+// and never while the swipe carousel owns the cards. Up to four rows exist at
+// once (lock screen, Control Center and Dynamic Island in MediaRemoteUI, plus
+// SpringBoard's own on iOS 18+) and all of them keep refreshing off-screen, so
+// without this the invisible ones would animate too.
+- (void)nu_updateMarquee {
+    BOOL live = self.window != nil && !self.hidden && self.alpha > 0.01 &&
+                self.activeDir == 0 && !self.committing;
+    [self.currentItem setMarqueeRunning:live];
+    [self.incomingItem setMarqueeRunning:NO];
+}
+
+// Control Center fades the row out with alpha and leaves `hidden` NO (see
+// NUCCLayoutRow), so window/hidden alone would leave a marquee scrolling behind a
+// closed Control Center. All three inputs re-evaluate here.
+- (void)setAlpha:(CGFloat)alpha {
+    [super setAlpha:alpha];
+    [self nu_updateMarquee];
+}
+
+- (void)setHidden:(BOOL)hidden {
+    [super setHidden:hidden];
+    [self nu_updateMarquee];
+}
+
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    [self nu_updateMarquee];
 }
 
 #pragma mark - Data
@@ -676,6 +943,7 @@ static BOOL NUViewIsRTL(UIView *v) {
     self.incomingItem.nuWideArtwork = wide;
     [self.currentItem applyTitle:mgr.nextTitle subtitle:mgr.nextSubtitle artwork:mgr.nextArtwork];
     [self setNeedsLayout];
+    [self nu_updateMarquee];
 }
 
 - (void)applyConcentricArtworkForCardCornerRadius:(CGFloat)cardRadius {
@@ -845,6 +1113,9 @@ static BOOL NUViewIsRTL(UIView *v) {
             [self cancelSwipeWithVelocity:0 width:W];
             break;
     }
+    // Every exit of the switch: the marquee stops as a direction locks and comes
+    // back once the cards are at rest.
+    [self nu_updateMarquee];
 }
 
 // The single source of truth for the physical-direction ↔ verb mapping: the
@@ -884,6 +1155,7 @@ static BOOL NUViewIsRTL(UIView *v) {
 
 - (void)commitDir:(CGFloat)dir velocity:(CGFloat)vx width:(CGFloat)W {
     self.committing = YES;
+    [self nu_updateMarquee];   // the X button gets here without going through -panned:
     [[self nu_haptics] impactOccurred];
 
     BOOL forward = [self nu_isForwardDir:dir];
@@ -944,6 +1216,10 @@ static BOOL NUViewIsRTL(UIView *v) {
     self.incomingItem.alpha = 0.0;
     self.activeDir = 0;
     self.incomingSign = 0;
+    // A different string in the same label: start its scroll from the beginning
+    // rather than from wherever the previous one stood.
+    [self.currentItem resetMarquee];
+    [self nu_updateMarquee];
 
     [self.settleTimer invalidate];
     __weak typeof(self) ws = self;
@@ -960,7 +1236,7 @@ static BOOL NUViewIsRTL(UIView *v) {
     [self.settleTimer invalidate];
     self.settleTimer = nil;
     self.committing = NO;
-    [self refreshFromManager];
+    [self refreshFromManager];   // also re-enables the marquee
     // Let VoiceOver pick up the row's new content after a commit without
     // stealing focus. Gated so it costs nothing when VoiceOver is off.
     if (UIAccessibilityIsVoiceOverRunning()) {

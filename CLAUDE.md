@@ -82,6 +82,13 @@ fallback. Canonical explanation at the top of `NUPrefs.h`.
   untrusted input; providers must stay inert while disabled in prefs (no queue
   reads — a backgrounded app polling its media stack starved mediaserverd into
   a watchdog kill on iOS 14.2).
+- **Borrowed private views are resolved, never linked:** the row's title/artist
+  scroll inside Apple's `MPUMarqueeView` (MPUFoundation), reached through
+  `objc_getClass` from `NUMarqueeLabel` in NUNextUpRowView.m. MPUFoundation is
+  resident in both display processes but must never reach the link line, and the
+  lookup is retried per layout because MediaControls (and with it MPUFoundation)
+  loads on demand in SpringBoard. A nil class, or Reduce Motion, leaves the
+  plain truncating `UILabel`.
 
 ## Build & test
 
