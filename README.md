@@ -89,7 +89,6 @@ tweak wrote (settings and play history).
 
 ## Known issues
 
-- Apple Podcasts is not yet verified on iOS 26 (every other app and surface is).
 - Spotify, YouTube and YouTube Music integrations are built against specific app versions
   (see table above); an app update can silently break them until the tweak is
   updated.
