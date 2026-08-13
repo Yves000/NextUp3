@@ -461,6 +461,55 @@ static const CGFloat kMarqueeFade = 8.0;
 
 @end
 
+#pragma mark - Dynamic Island cover flip (MediaControls)
+
+// The island rotates its album art around the Y axis when the track changes. That
+// animation is MediaControls': a Core Animation package — SessionArtwork.ca driven by
+// MRUSessionArtworkView on iOS 16, ActivityArtwork.ca driven by MRUActivityArtworkView
+// from 17 — and from iOS 26 also a code version, MRUFlippingArtworkView. The package
+// variants flip through -transitionToImage:, the code version from the item identifier
+// plus -setOnScreen:.
+//
+// The faces render at kFlipFaceScale of the view's width and the glow overhangs them,
+// so the view's frame is the artwork tile and no ancestor may clip it.
+//
+// `2` suffix: shadow redeclarations, reached only through objc_getClass.
+@interface CAPackage2 : NSObject
+- (id)publishedObjectWithName:(NSString *)name;
+@end
+
+@interface CCUICAPackageView2 : UIView
+- (CAPackage2 *)package;
+@end
+
+@interface MRUArtworkView2 : UIControl
+- (void)setArtworkImage:(UIImage *)image;         // plain swap for an image handed in from outside
+- (void)transitionToImage:(UIImage *)image;       // the flip; package variants only
+- (void)setItemIdentifier:(NSString *)identifier; // marks the cover stale (MRUFlippingArtworkView)
+- (void)setOnScreen:(BOOL)onScreen;               // completes that condition (MRUFlippingArtworkView)
+- (void)setPlaying:(BOOL)playing;                 // NO dims and shrinks the face
+- (CCUICAPackageView2 *)packageView;              // package variants only
+@end
+
+// Face size as a multiple of the view's width. The package bakes its corner radius in
+// at 25% of the face, 1.8pt short of the row's concentric radius on a 44pt tile;
+// -nu_applyFlipCorner converts points back into package units with this factor.
+static const CGFloat kFlipFaceScale = 1.0208;
+
+// Retried while nil, like NUMarqueeViewClass: SpringBoard loads MediaControls on demand.
+// Package variants first — their -init is self-contained, and on iOS 26, which has both,
+// this stays on the one the island has used since 17.
+static Class NUFlipArtworkClass(void) {
+    static Class cls;
+    if (!cls) {
+        static const char *const names[] = { "MRUActivityArtworkView",   // iOS 17+
+                                             "MRUSessionArtworkView",    // iOS 16
+                                             "MRUFlippingArtworkView" }; // iOS 26
+        for (size_t i = 0; i < sizeof(names) / sizeof(*names) && !cls; i++) cls = objc_getClass(names[i]);
+    }
+    return cls;
+}
+
 #pragma mark - NUItemView (one "UP NEXT" card: artwork + labels)
 
 @interface NUItemView : UIView
@@ -473,16 +522,27 @@ static const CGFloat kMarqueeFade = 8.0;
 @property (nonatomic) CGFloat nuArtworkTop;  // artwork top; skip + labels align to its band
 @property (nonatomic) CGFloat nuArtCorner;   // artwork corner radius (concentric in CC)
 @property (nonatomic) BOOL nuWideArtwork;   // 16:9 artwork well instead of square
+@property (nonatomic) BOOL nuFlipArtwork;   // Dynamic Island: cover changes flip
 // Last applied content (so a committed neighbour can be promoted to current).
 @property (nonatomic, copy, readonly) NSString *itemTitle;
 @property (nonatomic, copy, readonly) NSString *itemSubtitle;
 @property (nonatomic, strong, readonly) UIImage *itemArtwork;
+// Whichever view carries the cover — the flip view once it owns the artwork, the image
+// view otherwise. What the artwork tap dims.
+@property (nonatomic, strong, readonly) UIView *artworkDimmingView;
 - (void)applyTitle:(NSString *)title subtitle:(NSString *)subtitle artwork:(UIImage *)artwork;
+// flip:NO for a change the row already animates itself — the swipe/X commit slides a
+// whole card in, and two motions at once read as noise.
+- (void)applyTitle:(NSString *)title subtitle:(NSString *)subtitle artwork:(UIImage *)artwork flip:(BOOL)flip;
 - (void)setMarqueeRunning:(BOOL)running;
 - (void)resetMarquee;
 @end
 
-@implementation NUItemView
+@implementation NUItemView {
+    MRUArtworkView2 *_flipView;  // nil outside the island, or when the class is missing
+    NSString *_flipKey;          // the track the flip view currently shows
+    BOOL _loggedFlipMiss;
+}
 
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
@@ -574,6 +634,10 @@ static const CGFloat kMarqueeFade = 8.0;
 }
 
 - (void)applyTitle:(NSString *)title subtitle:(NSString *)subtitle artwork:(UIImage *)artwork {
+    [self applyTitle:title subtitle:subtitle artwork:artwork flip:YES];
+}
+
+- (void)applyTitle:(NSString *)title subtitle:(NSString *)subtitle artwork:(UIImage *)artwork flip:(BOOL)flip {
     BOOL sameTitle = (_itemTitle && [_itemTitle isEqualToString:title]);
     // Title alone is ambiguous — require the subtitle to match too; see the
     // NUSameTrack note in NUNextUpManager.m. Subtitles may both be empty.
@@ -592,15 +656,20 @@ static const CGFloat kMarqueeFade = 8.0;
     // _itemArtwork == nil is implied by the early return above: same track, artwork late.
     BOOL fromPlaceholder = (artwork != nil && sameTitle && sameSubtitle);
     _itemArtwork = artwork;
+    // Nothing animates where nothing can see it: the incoming card sits hidden at rest
+    // and the Control Center row parks at alpha 0, not hidden.
+    BOOL visible = self.window && !self.hidden && self.alpha > 0.0;
+    // In the island the cover flips instead. A late image for the same track has no
+    // cover to flip away from and takes the crossfade below.
+    if ([self nu_applyFlipArtwork:artwork animated:(flip && visible && !fromPlaceholder)]) return;
     if (artwork) {
         void (^applyArtwork)(void) = ^{
             self.artworkView.image = artwork;
             self.artworkView.contentMode = UIViewContentModeScaleAspectFill;
         };
         // Reduce Motion asks for a crossfade in place of movement (the swipe commit does the
-        // same), so it stays on in both cases. Skipped when nothing can see it: the incoming
-        // card sits hidden at rest and the Control Center row parks at alpha 0, not hidden.
-        if (fromPlaceholder && self.window && !self.hidden && self.alpha > 0.0) {
+        // same), so it stays on in both cases.
+        if (fromPlaceholder && visible) {
             [UIView transitionWithView:self.artworkView
                               duration:kArtFadeDuration
                                options:UIViewAnimationOptionTransitionCrossDissolve |
@@ -624,14 +693,148 @@ static const CGFloat kMarqueeFade = 8.0;
     }
 }
 
+// YES once the flip view owns the cover; the image view then carries only the tap
+// target and its tile, both behind the opaque faces. NO leaves the artwork to the
+// crossfade path above.
+- (BOOL)nu_applyFlipArtwork:(UIImage *)artwork animated:(BOOL)animated {
+    MRUArtworkView2 *flip = [self nu_flipView];
+    if (!flip) return NO;
+    if (!artwork) {   // the placeholder glyph stays the image view's job
+        flip.hidden = YES;
+        _flipKey = nil;
+        return NO;
+    }
+    // Same title + subtitle pairing as the early return above.
+    NSString *key = [NSString stringWithFormat:@"%@\n%@", _itemTitle ?: @"", _itemSubtitle ?: @""];
+    BOOL changed = !(_flipKey && [_flipKey isEqualToString:key]);
+    // The first cover has no predecessor to flip away from, and it arrives before the
+    // first layout pass — the flip would run at a zero frame.
+    BOOL firstCover = (_flipKey == nil);
+    _flipKey = [key copy];
+    BOOL doFlip = (animated && changed && !firstCover);
+    @try {
+        if (doFlip && [flip respondsToSelector:@selector(transitionToImage:)]) {
+            // -setArtworkImage: cannot reach the flip on the package variants: they gate
+            // it on their own image loader vending a new artwork identifier, which never
+            // happens for an image handed in from outside. -transitionToImage: is the
+            // entry point they use internally — it swaps the face and drives the package.
+            [flip transitionToImage:artwork];
+        } else {
+            // MRUFlippingArtworkView (iOS 26) has no such entry point; there the
+            // identifier marks the cover stale and -setOnScreen: completes the
+            // condition, both before the image.
+            [flip setOnScreen:doFlip];
+            if (doFlip) [flip setItemIdentifier:key];
+            [flip setArtworkImage:artwork];
+        }
+    } @catch (__unused NSException *e) {
+        flip.hidden = YES;
+        return NO;
+    }
+    // Every call above ends in a package state change, which restores the values the
+    // package ships with — the face corner among them.
+    [self nu_applyFlipCorner];
+    flip.hidden = NO;
+    self.artworkView.image = nil;
+    return YES;
+}
+
+// The view that renders the cover inside the island; nil everywhere else.
+- (MRUArtworkView2 *)nu_flipView {
+    // The 16:9 well (YouTube) keeps the image view: the faces are square and would
+    // letterbox a wide frame that the image view fills.
+    if (!_nuFlipArtwork || _nuWideArtwork) { _flipView.hidden = YES; return nil; }
+    if (_flipView) return _flipView;
+    Class cls = NUFlipArtworkClass();
+    if (!cls) return nil;
+    MRUArtworkView2 *v = nil;
+    // -init, not -initWithFrame:: the package variants build their package view there.
+    @try { v = [[cls alloc] init]; } @catch (__unused NSException *e) { v = nil; }
+    if (![v respondsToSelector:@selector(setArtworkImage:)] ||
+        ![v respondsToSelector:@selector(setItemIdentifier:)] ||
+        ![v respondsToSelector:@selector(setOnScreen:)] ||
+        ![v respondsToSelector:@selector(setPlaying:)]) {
+        // Interface drift on a future version must degrade to the crossfade, not crash.
+        if (!_loggedFlipMiss) {
+            _loggedFlipMiss = YES;
+            NULog("row: %{public}s unusable — cover crossfades", class_getName(cls));
+        }
+        return nil;
+    }
+    v.userInteractionEnabled = NO;   // the image view underneath stays the tap target
+    // Paused would dim and shrink the face; this row only shows what is up next.
+    @try { [v setPlaying:YES]; } @catch (__unused NSException *e) {}
+    _flipView = v;
+    [self addSubview:v];
+    [self setNeedsLayout];
+    return _flipView;
+}
+
+- (UIView *)artworkDimmingView {
+    return (_flipView && !_flipView.hidden) ? _flipView : self.artworkView;
+}
+
+// The faces carry the rounding for both the cover and the black backing behind it, so
+// the radius has to be set there rather than on the flip view. Re-applied after every
+// state change and per layout pass: a state change restores the package's own values,
+// and the width the radius converts against changes with the layout.
+- (void)nu_applyFlipCorner {
+    if (!_flipView || ![_flipView respondsToSelector:@selector(packageView)]) return;
+    CGFloat w = _flipView.bounds.size.width;
+    if (w <= 0) return;
+    @try {
+        CAPackage2 *package = [_flipView packageView].package;
+        if (![package respondsToSelector:@selector(publishedObjectWithName:)]) return;
+        for (NSString *name in @[ @"front", @"back" ]) {
+            id object = [package publishedObjectWithName:name];
+            if (![object isKindOfClass:[CALayer class]]) continue;
+            CALayer *face = object;
+            CGFloat units = face.bounds.size.width;
+            if (units <= 0) continue;
+            CGFloat radius = self.nuArtCorner * units / (kFlipFaceScale * w);
+            if (fabs(face.cornerRadius - radius) < 0.01) continue;
+            [CATransaction begin];
+            [CATransaction setDisableActions:YES];
+            face.cornerRadius = radius;
+            [CATransaction commit];
+        }
+    } @catch (__unused NSException *e) {}
+}
+
 - (CGFloat)artworkWidth { return _nuWideArtwork ? kArtWideSize : kArtSize; }
-- (void)setNuWideArtwork:(BOOL)v { if (_nuWideArtwork != v) { _nuWideArtwork = v; [self setNeedsLayout]; } }
+
+- (void)setNuFlipArtwork:(BOOL)v {
+    if (_nuFlipArtwork == v) return;
+    _nuFlipArtwork = v;
+    if (!v) { _flipView.hidden = YES; return; }
+    // Build the view here and seed it with the cover already on screen. Built lazily on
+    // the first apply instead, it would spend its silent first cover on the first track
+    // change — the one the flip is meant for.
+    [self nu_flipView];
+    if (_itemArtwork) [self nu_applyFlipArtwork:_itemArtwork animated:NO];
+    [self setNeedsLayout];
+}
+
+- (void)setNuWideArtwork:(BOOL)v {
+    if (_nuWideArtwork == v) return;
+    _nuWideArtwork = v;
+    // Hand the cover back to the image view: a source switch to the 16:9 well can land
+    // without a fresh artwork apply (see the early return in -applyTitle:…).
+    if (v && _flipView && !_flipView.hidden) {
+        _flipView.hidden = YES;
+        _flipKey = nil;
+        self.artworkView.image = _itemArtwork;
+        self.artworkView.contentMode = UIViewContentModeScaleAspectFill;
+    }
+    [self setNeedsLayout];
+}
 - (void)setNuHInset:(CGFloat)v { if (_nuHInset != v) { _nuHInset = v; [self setNeedsLayout]; } }
 - (void)setNuArtworkTop:(CGFloat)v { if (_nuArtworkTop != v) { _nuArtworkTop = v; [self setNeedsLayout]; } }
 - (void)setNuArtCorner:(CGFloat)v {
     if (_nuArtCorner == v) return;
     _nuArtCorner = v;
     self.artworkView.layer.cornerRadius = v;
+    [self nu_applyFlipCorner];
 }
 
 - (void)layoutSubviews {
@@ -643,6 +846,10 @@ static const CGFloat kMarqueeFade = 8.0;
     CGFloat artW = [self artworkWidth];
     self.artworkView.frame = rtl ? CGRectMake(w - hI - artW, artY, artW, kArtSize)
                                  : CGRectMake(hI, artY, artW, kArtSize);
+    // Same tile: the flip view draws the cover at kFlipFaceScale of this frame and
+    // overhangs it with the glow, so nothing here clips.
+    _flipView.frame = self.artworkView.frame;
+    [self nu_applyFlipCorner];
 
     // Center the label block on the artwork's vertical band (not the row), so the
     // asymmetric CC top/bottom padding keeps title/artist aligned with the artwork.
@@ -738,6 +945,10 @@ static const CGFloat kMarqueeFade = 8.0;
     self.nuCCStyle = YES;                          // same 24pt content padding as the card
     self.currentItem.nuArtCorner = kDIArtCorner;   // adopt Apple's DI artwork radius (concentric at 24pt)
     self.incomingItem.nuArtCorner = kDIArtCorner;
+    // Island only: the lock screen and Control Center players don't flip their cover
+    // on any version.
+    self.currentItem.nuFlipArtwork = YES;
+    self.incomingItem.nuFlipArtwork = YES;
     // The island is always black regardless of the system light/dark setting —
     // same situation as the Control Center card, see configureForControlCenter.
     self.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
@@ -1021,7 +1232,11 @@ static const CGFloat kMarqueeFade = 8.0;
                                 UIViewAnimationOptionAllowUserInteraction |
                                 UIViewAnimationOptionCurveEaseOut
                      animations:^{
-        self.currentItem.artworkView.alpha = on ? kArtworkPressAlpha : 1.0;
+        // Both, not just the visible one: a late artwork can hand the tile to the flip
+        // view mid-press, which would strand the other dimmed.
+        CGFloat a = on ? kArtworkPressAlpha : 1.0;
+        self.currentItem.artworkView.alpha = a;
+        self.currentItem.artworkDimmingView.alpha = a;
     } completion:nil];
 }
 
@@ -1206,9 +1421,11 @@ static const CGFloat kMarqueeFade = 8.0;
 // to catch up before accepting fresh snapshots.
 - (void)promoteIncoming {
     self.promotedTitle = self.incomingItem.itemTitle;
+    // flip:NO — the card slide is this change's animation.
     [self.currentItem applyTitle:self.incomingItem.itemTitle
                         subtitle:self.incomingItem.itemSubtitle
-                         artwork:self.incomingItem.itemArtwork];
+                         artwork:self.incomingItem.itemArtwork
+                            flip:NO];
     self.currentItem.transform = CGAffineTransformIdentity;
     self.currentItem.alpha = 1.0;
     self.incomingItem.hidden = YES;
