@@ -3,8 +3,10 @@
 # injected media processes so the dylib is actually gone from them.
 case "$1" in
   remove|purge)
-    # Settings (CFPreferences, written by the prefs pane)
+    # Settings (CFPreferences, written by the prefs pane). cfprefsd caches the
+    # domain and would write the file right back, so restart it too.
     rm -f /var/mobile/Library/Preferences/com.yves.nextup3.plist
+    killall cfprefsd 2>/dev/null || true
     # Play history (written inside the Music app's data container:
     # .../Library/Application Support/NextUp3/history.plist)
     find /var/mobile/Containers/Data/Application \

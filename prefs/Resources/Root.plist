@@ -126,6 +126,23 @@
 			<key>defaults</key>
 			<string>com.yves.nextup3</string>
 		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>cellClass</key>
+			<string>NUIconLinkCell</string>
+			<key>id</key>
+			<string>sourceCode</string>
+			<key>label</key>
+			<string>Source Code</string>
+			<key>action</key>
+			<string>openSourceRepository</string>
+		</dict>
 	</array>
 </dict>
 </plist>

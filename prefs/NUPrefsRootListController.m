@@ -1,4 +1,5 @@
 #import "NUPrefsRootListController.h"
+#import "NUPrefsHeaderView.h"
 #import "NUPrefs.h"
 #import <UIKit/UIKit.h>
 #import <dlfcn.h>
@@ -198,8 +199,45 @@ static UIImage *NUAppIconImage(NSString *bundleID) {
     }];
 }
 
+// The name shown in the header and, once it scrolls away, in the navigation bar. Root.plist's
+// title is the source; this is only the fallback for the window before Preferences has applied
+// it.
+static NSString *const kNUPaneTitle = @"NextUp 3";
+
+// Target of the Source Code row. Kept in step with control's Homepage field.
+static NSString *const kNURepositoryURL = @"https://github.com/Yves000/NextUp3";
+
+static void *kNUContentOffsetContext = &kNUContentOffsetContext;
+
+// The mark on the Source Code row: a custom SF Symbol from the asset catalog compiled into this
+// bundle (see the actool step in the Makefile). It has to be a symbol — Root.plist's `icon` key
+// names a file that Preferences rasterises at a size of its own choosing, where a symbol is drawn
+// by UIKit at the row's own metric. Body font for that metric so it follows Dynamic Type, at the
+// large scale so it sits slightly above the label rather than level with it.
+static UIImage *NUGitHubRowIcon(NSBundle *bundle) {
+    UIImageSymbolConfiguration *configuration = [UIImageSymbolConfiguration
+        configurationWithFont:[UIFont preferredFontForTextStyle:UIFontTextStyleBody]
+                        scale:UIImageSymbolScaleLarge];
+    UIImage *symbol = [UIImage imageNamed:@"github" inBundle:bundle withConfiguration:configuration];
+    return [symbol imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+}
+
+// The Source Code row's label, localised against the table Preferences itself localises
+// Root.plist with — keyed by the English source string, the convention that table uses. Read here
+// rather than off the specifier so it does not depend on the specifiers having loaded, and so the
+// header's icon and the row can never announce two different things.
+static NSString *NUSourceCodeRowTitle(void) {
+    NSString *fallback = @"Source Code";
+    NSBundle *bundle = [NSBundle bundleForClass:NUPrefsRootListController.class];
+    NSString *value = [bundle localizedStringForKey:fallback value:fallback table:@"Root"];
+    return value.length ? value : fallback;
+}
+
 @interface NUPrefsRootListController () <LSApplicationWorkspaceObserverProtocol> {
     NSString *_installedSignature;   // NUInstalledSignature() as of the last specifier build
+    NUPrefsHeaderView *_headerView;
+    UITableView *_observedTable;
+    BOOL _navigationTitleShown;
 }
 @end
 
@@ -212,6 +250,7 @@ static UIImage *NUAppIconImage(NSString *bundleID) {
         // Island row on a device without one; give the surviving app rows their real icon.
         // Built once (the guard above keeps it from re-running until -reloadSpecifiers clears
         // the cache on an install/uninstall).
+        UIImage *mark = NUGitHubRowIcon([NSBundle bundleForClass:self.class]);
         NSMutableArray *kept = [NSMutableArray arrayWithCapacity:loaded.count];
         for (PSSpecifier *spec in loaded) {
             NSString *key = [spec propertyForKey:@"key"];
@@ -221,6 +260,10 @@ static UIImage *NUAppIconImage(NSString *bundleID) {
             if (bundleID && !NUAppInstalled(bundleID)) continue;   // app not on device → drop it
             UIImage *icon = NUAppIconImage(bundleID);
             if (icon) [spec setProperty:icon forKey:@"iconImage"];
+            // Set here rather than in the plist for the same reason the app icons are: the `icon`
+            // key takes a file name, so it can only name a bitmap.
+            if (mark && [spec.identifier isEqualToString:@"sourceCode"])
+                [spec setProperty:mark forKey:@"iconImage"];
             [kept addObject:spec];
         }
         // If dropping apps emptied a section, remove its now-dangling header (a group cell with
@@ -238,18 +281,127 @@ static UIImage *NUAppIconImage(NSString *bundleID) {
     return _specifiers;
 }
 
-// Observe app installs/uninstalls so the list updates live (e.g. installing YouTube Music from
-// the App Store makes its toggle appear here without reopening the pane). addObserver: doesn't
-// retain us, so -dealloc still runs and unregisters.
+#pragma mark - Source Code row
+
+- (void)openSourceRepository {
+    NSURL *url = [NSURL URLWithString:kNURepositoryURL];
+    if (url) [UIApplication.sharedApplication openURL:url options:@{} completionHandler:nil];
+    // Otherwise the row stays highlighted while Safari is in front.
+    NSIndexPath *selected = self.table.indexPathForSelectedRow;
+    if (selected) [self.table deselectRowAtIndexPath:selected animated:YES];
+}
+
+// A template image takes its view's tint, which in a Settings table is the accent colour; the
+// mark reads as text, so it takes the label colour. The app icons above are not templates and
+// are unaffected.
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
+    PSSpecifier *spec = [self specifierAtIndexPath:indexPath];
+    if ([spec.identifier isEqualToString:@"sourceCode"])
+        cell.imageView.tintColor = UIColor.labelColor;
+    return cell;
+}
+
+#pragma mark - Header and navigation title
+
+// Also observes app installs/uninstalls so the list updates live (e.g. installing YouTube Music
+// from the App Store makes its toggle appear here without reopening the pane). addObserver:
+// doesn't retain us, so -dealloc still runs and unregisters.
 - (void)viewDidLoad {
     [super viewDidLoad];
     Class ws = NSClassFromString(@"LSApplicationWorkspace");
     if (ws) [[ws defaultWorkspace] addObserver:self];
+
+    NSString *version = [[NSBundle bundleForClass:self.class]
+                            objectForInfoDictionaryKey:@"CFBundleVersion"] ?: @"";
+    _headerView = [[NUPrefsHeaderView alloc] initWithTitle:self.title ?: kNUPaneTitle
+                                                   version:version];
+    // The icon is the pane's picture of the tweak, so it goes where the Source Code row goes —
+    // the same selector, so the two can never drift to different repositories.
+    [_headerView setIconTarget:self
+                        action:@selector(openSourceRepository)
+            accessibilityLabel:NUSourceCodeRowTitle()];
+    self.table.tableHeaderView = _headerView;
+
+    // The offset is observed rather than taken from -scrollViewDidScroll:, which needs this
+    // controller to be the table's delegate — Preferences does not promise that, and a missed
+    // callback would strand the title hidden.
+    _observedTable = self.table;
+    [_observedTable addObserver:self
+                     forKeyPath:@"contentOffset"
+                        options:NSKeyValueObservingOptionNew
+                        context:kNUContentOffsetContext];
+
+    self.navigationItem.title = @"";
 }
 
 - (void)dealloc {
     Class ws = NSClassFromString(@"LSApplicationWorkspace");
     if (ws) [[ws defaultWorkspace] removeObserver:self];
+    [_observedTable removeObserver:self forKeyPath:@"contentOffset" context:kNUContentOffsetContext];
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary *)change
+                       context:(void *)context {
+    if (context != kNUContentOffsetContext) {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+        return;
+    }
+    [self updateNavigationTitleForScrollView:_observedTable animated:YES];
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+
+    UITableView *table = self.table;
+    if (table.tableHeaderView != _headerView) return;
+
+    // A table header view is not laid out by the table; it has to be measured and reassigned,
+    // and only on an actual change — an unconditional reassignment inside a layout pass is a
+    // relayout loop.
+    CGFloat width = table.bounds.size.width;
+    if (width <= 0.0) return;
+    CGFloat height = [_headerView sizeThatFits:CGSizeMake(width, CGFLOAT_MAX)].height;
+    CGRect frame = _headerView.frame;
+    if (fabs(frame.size.width - width) > 0.5 || fabs(frame.size.height - height) > 0.5) {
+        _headerView.frame = CGRectMake(0.0, 0.0, width, height);
+        table.tableHeaderView = _headerView;
+    }
+    [self updateNavigationTitleForScrollView:table animated:NO];
+}
+
+// The navigation bar takes the title over exactly when the header's own title has passed under
+// it, so the name is on screen once and never twice.
+//
+// It goes through -navigationItem.title, not a titleView: Preferences renders the controller's
+// own title and leaves a titleView unused. -title stays untouched — Preferences reads it
+// elsewhere.
+- (void)updateNavigationTitleForScrollView:(UIScrollView *)scrollView animated:(BOOL)animated {
+    if (!_headerView || !scrollView) return;
+
+    CGFloat top = scrollView.contentOffset.y + scrollView.adjustedContentInset.top;
+    BOOL shown = top >= _headerView.titleBottom;
+    if (shown == _navigationTitleShown) return;
+    _navigationTitleShown = shown;
+
+    UINavigationBar *bar = animated ? self.navigationController.navigationBar : nil;
+    if (!bar) {
+        [self applyNavigationTitle];
+        return;
+    }
+    // A title string cannot hold an alpha, so the bar itself carries the fade.
+    [UIView transitionWithView:bar
+                      duration:0.2
+                       options:UIViewAnimationOptionTransitionCrossDissolve
+                    animations:^{ [self applyNavigationTitle]; }
+                    completion:nil];
+}
+
+- (void)applyNavigationTitle {
+    NSString *title = self.title.length ? self.title : kNUPaneTitle;
+    self.navigationItem.title = _navigationTitleShown ? title : @"";
 }
 
 // Safety net for the common flow "leave to the App Store, install, come back": while
@@ -259,6 +411,9 @@ static UIImage *NUAppIconImage(NSString *bundleID) {
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     if (_specifiers) [self _nuReloadIfRelevantAppsChanged];
+    // Preferences may only have applied the plist title after -viewDidLoad.
+    _headerView.title = self.title.length ? self.title : kNUPaneTitle;
+    [self applyNavigationTitle];
 }
 
 // Rebuild the pane only when the install-state of one of OUR apps actually flipped — an
