@@ -171,6 +171,14 @@ typedef struct { long long reverseCount; long long forwardCount; } NUTracklistRa
 - (void)nu_applyCCExpanded:(BOOL)expanded;
 @end
 
+// The full AirPlay routing list ("Control Other Speakers & TVs"), laid over the
+// expanded Control Center card (iOS ≤ 17). -setOnScreen: is toggled as it slides
+// in/out — the authoritative signal for hiding our row while it covers the card
+// (hooked in NUHooksControlCenterLegacy.x).
+@interface MRURoutingViewController : UIViewController
+- (void)setOnScreen:(BOOL)onScreen;
+@end
+
 #pragma mark - iOS 18 Control Center now-playing module
 
 // iOS 18 replaced the MRUControlCenterViewController-hosts-MRUNowPlayingViewController

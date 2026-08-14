@@ -15,6 +15,16 @@ static MRUNowPlayingViewController *NUCCNestedNowPlayingVC(MRUControlCenterViewC
     return [np isKindOfClass:objc_getClass("MRUNowPlayingViewController")] ? np : nil;
 }
 
+// Force the nested now-playing row hidden (routing up) or restored (routing gone),
+// via the shared route key that NUViewShowsRow / nu_shouldShowRow honour.
+static void NUCCSetRouting(MRUControlCenterViewController *cc, BOOL routing) {
+    MRUNowPlayingViewController *np = NUCCNestedNowPlayingVC(cc);
+    if (![np isViewLoaded]) return;
+    objc_setAssociatedObject(np.view, kNURouteOpeningKey, routing ? @YES : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [np.nu_row refreshFromManager];
+    [np.view setNeedsLayout];
+}
+
 %group NUCCLegacy
 // Control Center's now-playing card (SpringBoard process). The card height comes
 // from this CCUI content-module hook, so grow it by our row height when there's a
@@ -92,15 +102,29 @@ static MRUNowPlayingViewController *NUCCNestedNowPlayingVC(MRUControlCenterViewC
 // hooked above. Without this the nested now-playing view keeps laying out as "expanded" and our row
 // flashes over the routing transition. Force it hidden while routing is up via the shared route key
 // (NUViewShowsRow / nu_shouldShowRow honour it); any other state clears it, so returning to the
-// expanded card shows the row again (its NUViewCCExpanded stamp is untouched here).
+// expanded card shows the row again (its NUViewCCExpanded stamp is untouched here). On iOS 16 this
+// state signal doesn't land — the -[MRURoutingViewController setOnScreen:] hook below drives it there.
 - (void)setState:(NSInteger)state {
     %orig;
-    MRUNowPlayingViewController *np = NUCCNestedNowPlayingVC(self);
-    if (![np isViewLoaded]) return;
-    objc_setAssociatedObject(np.view, kNURouteOpeningKey,
-                             (state == 2) ? @YES : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    [np.nu_row refreshFromManager];
-    [np.view setNeedsLayout];
+    // Where the routing list ships as MRURoutingViewController, its -setOnScreen: hook below is
+    // the authoritative signal — and there the routing -setState: value is NOT 2 (seen on iOS 16),
+    // so writing here would clear the key -setOnScreen: just set and flash the row back over the
+    // list. Defer to -setOnScreen: whenever that class exists; -setState: only governs versions
+    // without it (the row can't have two writers racing on one key).
+    if (objc_getClass("MRURoutingViewController")) return;
+    NUCCSetRouting(self, state == 2);
+}
+
+%end
+
+// The routing list's own on-screen lifecycle, and the authoritative routing signal
+// wherever this class exists: -setOnScreen: is toggled as the list slides in and out.
+// onScreen → hide our row so it doesn't sit under the list; off → restore it.
+%hook MRURoutingViewController
+
+- (void)setOnScreen:(BOOL)onScreen {
+    %orig;
+    NUCCSetRouting((MRUControlCenterViewController *)NUControlCenterAncestor(self), onScreen);
 }
 
 %end
