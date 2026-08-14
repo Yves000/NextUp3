@@ -49,6 +49,11 @@
 - (NSString *)contentItemIDWithCurrentItemOffset:(long long)offset mode:(long long)mode didReachEnd:(BOOL *)didReachEnd;
 - (id)itemForContentItemID:(NSString *)contentItemID;
 - (void)jumpToContentItemID:(NSString *)contentItemID; // play that queue item now (see -jumpToNext)
+// Remove a queue item by content id directly — the only skip path that works for
+// autoplay/radio contexts, where the queue lookahead reports a next item but no
+// captured response tracklist ever materialises it (so the -remove path below
+// has no MPCPlayerResponseItem to act on). Verified present on iOS 16. See -skipNext.
+- (void)removeContentItemID:(NSString *)contentItemID completion:(void (^)(id))completion;
 @end
 
 // Materialised player response — used for the actual skip (removal). Its
@@ -771,7 +776,23 @@ static const NSTimeInterval kNUArtworkChainStaleInterval = 20.0;
         if (!self.capturedResponses) self.capturedResponses = [NSMutableArray array];
         [self.capturedResponses removeObject:response];
         [self.capturedResponses insertObject:response atIndex:0];
-        while (self.capturedResponses.count > 16) [self.capturedResponses removeLastObject]; // 16 = captured-responses ring (see kNUResponseCatalogMaxAttempt)
+        // Trim preferring responses WITHOUT a real queue: Music spawns response
+        // bursts (a dozen per song change with the lyrics page up, similar at app
+        // launch) whose tracklists never materialise, and evicting by age alone
+        // flushes the ONE response holding the queue — skip, the play history and
+        // the title fallback all resolve against this ring. Tracklists fill in
+        // after init, so judge at trim time, not capture time; index 0 (the fresh,
+        // still-empty capture) is never the victim.
+        while (self.capturedResponses.count > 16) { // 16 = captured-responses ring (see kNUResponseCatalogMaxAttempt)
+            NSInteger drop = (NSInteger)self.capturedResponses.count - 1;
+            for (NSInteger i = (NSInteger)self.capturedResponses.count - 1; i >= 1; i--) {
+                MPCPlayerResponse *r = self.capturedResponses[i];
+                BOOL real = NO;
+                @try { real = r.tracklist.items.totalItemCount > 1; } @catch (__unused NSException *e) {}
+                if (!real) { drop = i; break; }
+            }
+            [self.capturedResponses removeObjectAtIndex:drop];
+        }
     } @catch (__unused NSException *e) {}
 }
 
@@ -798,7 +819,12 @@ static const NSTimeInterval kNUArtworkChainStaleInterval = 20.0;
         NSString *targetID = [self nextContentID];
         if (!targetID) { NULog("skip: no next id"); return; }
         MPCPlayerResponseItem *toRemove = [self responseItemForContentID:targetID];
-        if (!toRemove) { NULog("skip: '%{public}@' not found in %lu responses", targetID, (unsigned long)self.capturedResponses.count); return; }
+        if (!toRemove) {
+            // Autoplay/radio: the next item lives only in the controller's lookahead,
+            // not in any materialised response tracklist — remove it by id instead.
+            [self skipNextViaController:targetID];
+            return;
+        }
 
         id command = [toRemove remove];
         if (!command) { NULog("skip: no remove command"); return; }
@@ -814,6 +840,18 @@ static const NSTimeInterval kNUArtworkChainStaleInterval = 20.0;
     } @catch (NSException *e) {
         NULog("skip: threw %{public}@", e.name);
     }
+}
+
+// Remove the next item straight off the controller by id, for when no captured
+// response tracklist holds it (autoplay/radio). Must stay on the main thread — the
+// skip notify is a main-queue dispatch, and MPCQueueController mutation off-main
+// crashes Music.
+- (void)skipNextViaController:(NSString *)targetID {
+    MPCQueueController *qc = self.queueController;
+    if (!qc || ![qc respondsToSelector:@selector(removeContentItemID:completion:)]) return;
+    @try {
+        [qc removeContentItemID:targetID completion:^(id error) { [self changedSoon]; }];
+    } @catch (__unused NSException *e) {}
 }
 
 #pragma mark - LightMessaging server (Music registers the service via libSandy)
