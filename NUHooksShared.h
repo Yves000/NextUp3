@@ -296,6 +296,20 @@ static inline void NUCCApplyRouteOverride(UIView *npView, BOOL wasOpen) {
     });
 }
 
+// CCUI renders the grid slots listed in -implicitlyExpandedGridSizeClasses as
+// permanently expanded and never sends them an expand transition, so -isExpanded stays
+// NO while the full player is on screen. Control Center's media page (iOS 18+) is such
+// a slot: gridSizeClass 9, mask 1536; the main-page tile is 4 and stays out.
+// Both accessors are ObjC properties of CCUIContentModuleContentViewController on 18
+// and 26 alike, so this also reads on the Swift module, where -isExpanded does not.
+static inline BOOL NUCCModuleImplicitlyExpanded(MRUMediaControlsModuleViewController *mod) {
+    if (![mod respondsToSelector:@selector(gridSizeClass)] ||
+        ![mod respondsToSelector:@selector(implicitlyExpandedGridSizeClasses)]) return NO;
+    long long grid = mod.gridSizeClass;
+    if (grid < 0 || grid > 63) return NO;
+    return (mod.implicitlyExpandedGridSizeClasses & (1ULL << (unsigned long long)grid)) != 0;
+}
+
 static inline BOOL NUCCModuleExpanded(UIView *view) {
     Class MOD = objc_getClass("MRUMediaControlsModuleViewController");
     if (!MOD) return NO;
@@ -303,6 +317,9 @@ static inline BOOL NUCCModuleExpanded(UIView *view) {
     for (UIResponder *r = view.nextResponder; r; r = r.nextResponder)
         if ([r isKindOfClass:MOD]) {
             MRUMediaControlsModuleViewController *mod = (MRUMediaControlsModuleViewController *)r;
+            // Before both state reads below: an implicitly expanded module reports no
+            // expansion but is drawn as the full card.
+            if (NUCCModuleImplicitlyExpanded(mod)) return YES;
             if ([mod respondsToSelector:@selector(isExpanded)]) return mod.isExpanded;  // iOS 18
             // iOS 26 reimplemented this controller in Swift and `isExpanded` became a
             // plain Swift stored property with no ObjC accessor — the selector check
@@ -351,18 +368,34 @@ static inline UIView *NUCCBackdropView(UIView *nowPlayingView) {
     return NUCCViewOfAnyClass(nowPlayingView, kNames, sizeof(kNames) / sizeof(*kNames));
 }
 
-// The full AirPlay routing list ("Control Other Speakers & TVs") is up when the module's
-// discoveryMode is non-zero; it is 0 while the now-playing content is shown. This is a
-// distinct surface from the inline route picker (NUCCRoutingOpen) — a full
-// MRURoutingViewController laid over the card — so the row must be gated off separately
-// while it is present. Walks the responder chain to the module, as NUCCModuleExpanded does.
+// The full AirPlay routing list ("Control Other Speakers & TVs") is the module's own
+// MRURoutingViewController, a distinct surface from the inline route picker
+// (NUCCRoutingOpen) and mountable outside the routing sibling the geometry test
+// measures. Two nearby signals latch and must not be used:
+//
+//   - `discoveryMode` tracks the AirPlay discovery scan, not the UI. It reaches 3 with
+//     the plain player on screen and stays there (iOS 18.7.9), hiding the row in every
+//     Control Center player from the first scan onwards.
+//   - the list view's height. Once opened, the list stays laid out at full height for
+//     the rest of the module's life and is only parked outside the card (the same trick
+//     iOS 26 plays on the picker, see NUCCRoutingViewOpen).
+//
+// So test position, not size: the list covers the card only while it is up. Window
+// coordinates, because the two views sit in different subtrees. Walks the responder
+// chain to the module, as NUCCModuleExpanded does. iOS 26's Swift module exposes no
+// such accessor, so this reads NO there and the geometry test decides.
 static inline BOOL NUCCDiscoveryActive(UIView *view) {
     Class MOD = objc_getClass("MRUMediaControlsModuleViewController");
     if (!MOD) return NO;
     for (UIResponder *r = view.nextResponder; r; r = r.nextResponder)
         if ([r isKindOfClass:MOD]) {
             MRUMediaControlsModuleViewController *mod = (MRUMediaControlsModuleViewController *)r;
-            return [mod respondsToSelector:@selector(discoveryMode)] && mod.discoveryMode != 0;
+            if (![mod respondsToSelector:@selector(routingViewController)]) return NO;
+            UIView *list = mod.routingViewController.viewIfLoaded;
+            if (!list || !list.window || list.hidden || list.alpha < 0.01) return NO;
+            CGRect over = CGRectIntersection([list convertRect:list.bounds toView:nil],
+                                             [view convertRect:view.bounds toView:nil]);
+            return !CGRectIsNull(over) && over.size.height > 1.0;
         }
     return NO;
 }

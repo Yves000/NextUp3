@@ -1,6 +1,11 @@
 // iOS 18 Control Center now-playing module (MRUMediaControlsModuleNowPlaying*).
 // These classes only exist on iOS 18; Logos skips the hooks on <=17 (nil class),
 // where NUHooksControlCenterLegacy runs instead.
+//
+// One module class, two surfaces: the tile on Control Center's main page (which the user
+// expands into the card), and the full player on its media page, a second instance of
+// the same module in a larger grid slot. Both are covered here; the media page passes
+// the row's expanded gate through NUCCModuleImplicitlyExpanded.
 #import "NUHooksShared.h"
 #import <mach-o/dyld.h>
 

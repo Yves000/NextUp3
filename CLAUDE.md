@@ -50,7 +50,7 @@ fallback. Canonical explanation at the top of `NUPrefs.h`.
 |---|---|
 | `hooks/NUHooksNowPlaying.x` | Shared display plumbing: row attach, platter sizing, settle ticks |
 | `hooks/NUHooksLockScreen14.x` / `15` / `18` | Lock screen platter growth where SpringBoard-side surgery is needed. 14/15: player hosted in-process in SpringBoard (CoverSheet), two different height levers. 16/17: no file — the player is a remote MediaRemoteUI scene that sizes itself, NUHooksNowPlaying.x draws the row inside it. 18+ (incl. 26, `NUIOSMajor() >= 18`): still MediaRemoteUI content, but hosted as a fixed-height Live Activity, so the row is rendered SpringBoard-side |
-| `hooks/NUHooksControlCenterLegacy.x` / `18` / `26` | Control Center per version (26 = Swift rewrite, `%init` deferred via `_dyld_register_func_for_add_image`) |
+| `hooks/NUHooksControlCenterLegacy.x` / `18` / `26` | Control Center per version (26 = Swift rewrite, `%init` deferred via `_dyld_register_func_for_add_image`). On 18+ the same module serves two surfaces: the main page's tile/card, and the media page's full player, a second instance in a bigger grid slot that is never sent an expand transition (`NUCCModuleImplicitlyExpanded`) |
 | `hooks/NUHooksDynamicIsland16.x` / `17` | Dynamic Island expanded player (17 covers 18/26 too) |
 | `hooks/NUHooksSpringBoard.x` | Fails the system's own gestures while our row swipe is active — reads the cross-process touch flag (`NUDITouchGet`; set row-side by the `NUFlagPan` recognizer in NUNextUpRowView.m) |
 | `hooks/NUHooksTCC.x` | iOS ≤ 16 NSAppleMusicUsageDescription injection (`%group NUMediaTCC`) — without it queue reads get the process killed |

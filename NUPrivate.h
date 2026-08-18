@@ -212,7 +212,13 @@ typedef struct { long long reverseCount; long long forwardCount; } NUTracklistRa
 @interface MRUMediaControlsModuleViewController : UIViewController
 - (double)preferredExpandedContentHeight;
 - (BOOL)isExpanded;
-- (long long)discoveryMode; // 0 = now-playing; non-zero = AirPlay/routing picker is up
+- (long long)discoveryMode; // AirPlay discovery scan state, not a routing-UI signal; see NUCCDiscoveryActive
+- (UIViewController *)routingViewController; // the full "Control Other Speakers & TVs" list
+// CCUIContentModuleContentViewController: the grid slot the module occupies, and the
+// bitmask of slots (1 << gridSizeClass) CCUI renders permanently expanded, which
+// includes the Control Center media page. See NUCCModuleImplicitlyExpanded.
+- (long long)gridSizeClass;
+- (unsigned long long)implicitlyExpandedGridSizeClasses;
 @end
 
 #pragma mark - iOS 17 Dynamic Island expanded now-playing (MRUActivityNowPlaying*)
