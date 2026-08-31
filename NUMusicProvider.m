@@ -29,10 +29,20 @@
 - (MPIdentifierSet *)identifiers;
 @end
 
+@interface MPModelPlaylistEntry : NSObject
+- (MPModelSong *)song;
+@end
+
 @interface MPModelGenericObject : NSObject
 - (MPModelSong *)song;
 - (MPArtworkCatalog *)artworkCatalog;
 - (MPIdentifierSet *)identifiers; // Podcasts: -> -databaseID episode UUID
+// A queue built from a library playlist wraps each track as an
+// MPModelPlaylistEntry (kind "playlist entries of (MPModelSong)"): on that
+// generic object -song and -artworkCatalog are nil, the song sits one level
+// down. Both unwrap it; see NUSongOf / NUCatalogOf.
+- (MPModelPlaylistEntry *)playlistEntry;
+- (MPModelGenericObject *)flattenedGenericObject; // song-kind copy of the innermost object
 @end
 
 @interface MPCModelGenericAVItem : NSObject
@@ -363,6 +373,28 @@ static NSString *NUHistoryPlistPath(void) {
     } @catch (__unused NSException *e) { return nil; }
 }
 
+// The song behind a queue item's generic object. Song-kind objects answer -song
+// directly; playlist-entry-kind objects (tracks queued from a library playlist)
+// answer nil there and need the entry unwrapped, else the item has no catalog
+// (permanent artwork placeholder), no adam id (play-previous silently no-ops)
+// and no tracklist title (history cards stay empty). Guards are for older
+// MediaPlayer builds that may lack the unwrap accessors.
+static MPModelSong *NUSongOf(MPModelGenericObject *mgo) {
+    if (!mgo) return nil;
+    MPModelSong *song = [mgo song];
+    if (!song && [mgo respondsToSelector:@selector(playlistEntry)]) song = [[mgo playlistEntry] song];
+    if (!song && [mgo respondsToSelector:@selector(flattenedGenericObject)]) song = [[mgo flattenedGenericObject] song];
+    return song;
+}
+
+// The artwork catalog for a queue item's generic object (see NUSongOf).
+static MPArtworkCatalog *NUCatalogOf(MPModelGenericObject *mgo) {
+    if (!mgo) return nil;
+    MPArtworkCatalog *catalog = [mgo artworkCatalog] ?: [NUSongOf(mgo) artworkCatalog];
+    if (!catalog && [mgo respondsToSelector:@selector(flattenedGenericObject)]) catalog = [[mgo flattenedGenericObject] artworkCatalog];
+    return catalog;
+}
+
 // The Apple Music catalog (store adam) id for a song, as a string, or nil.
 static NSString *NUAdamIDFromSong(MPModelSong *song) {
     if (!song) return nil;
@@ -381,7 +413,7 @@ static NSString *NUAdamIDFromSong(MPModelSong *song) {
     @try {
         cid = item.contentItemIdentifier;
         MPModelGenericObject *mo = [item metadataObject];
-        MPModelSong *song = [mo song];
+        MPModelSong *song = NUSongOf(mo);
         title = [song title];
         artist = [[song artist] name];
         adam = NUAdamIDFromSong(song);
@@ -414,14 +446,14 @@ static NSString *NUAdamIDFromSong(MPModelSong *song) {
     @try {
         MPCModelGenericAVItem *item = [self.queueController itemForContentItemID:cid];
         if (item) { title = [item mainTitle]; artist = [item artist];
-                    adam = NUAdamIDFromSong([[item modelGenericObject] song]);
+                    adam = NUAdamIDFromSong(NUSongOf([item modelGenericObject]));
                     // Podcasts (iOS 18): the episode's local UUID — the only handle needed to
                     // re-queue it later via -playPrevious. Nil/absent for Music items.
                     @try { episodeUUID = [[[item modelGenericObject] identifiers] databaseID]; } @catch (__unused NSException *e2) {} }
     } @catch (__unused NSException *e) {}
     if (title.length == 0) {
         @try {
-            MPModelSong *song = [[[self responseItemForContentID:cid] metadataObject] song];
+            MPModelSong *song = NUSongOf([[self responseItemForContentID:cid] metadataObject]);
             title = [song title];
             artist = [[song artist] name];
             adam = NUAdamIDFromSong(song);
@@ -616,8 +648,7 @@ static const NSTimeInterval kNUArtworkChainStaleInterval = 20.0;
     MPArtworkCatalog *catalog = nil;
     if (item) {
         @try {
-            MPModelGenericObject *mgo = [item modelGenericObject];
-            catalog = [mgo artworkCatalog] ?: [[mgo song] artworkCatalog];
+            catalog = NUCatalogOf([item modelGenericObject]);
         } @catch (NSException *e) { NULog("prefetch: catalog threw %{public}@", e.name); }
     }
     if (!catalog && attempt <= kNUResponseCatalogMaxAttempt) {
@@ -626,8 +657,7 @@ static const NSTimeInterval kNUArtworkChainStaleInterval = 20.0;
         // the queue controller's item does (first play after a Music launch).
         // Early attempts only — see kNUResponseCatalogMaxAttempt.
         @try {
-            MPModelGenericObject *mgo = [[self responseItemForContentID:cid] metadataObject];
-            catalog = [mgo artworkCatalog] ?: [[mgo song] artworkCatalog];
+            catalog = NUCatalogOf([[self responseItemForContentID:cid] metadataObject]);
         } @catch (__unused NSException *e) {}
     }
     if (!catalog) { [self retryArtworkForContentID:cid attempt:attempt]; return; }

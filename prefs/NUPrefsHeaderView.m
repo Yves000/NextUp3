@@ -178,8 +178,30 @@ static const CGFloat kNUIconPressScale = 0.95;
     [self setNeedsLayout];
 }
 
+// The horizontal band the header's content belongs in.
+//
+// From iOS 26 the Settings sidebar on an iPad floats over a detail column that spans the whole
+// window, and UIKit compensates by handing the table a left safe-area inset instead of narrowing
+// it. The rows follow that on their own because they live in the table's inset wrapper view, but a
+// tableHeaderView is a direct subview of the table at its full width, so it has to apply the inset
+// itself -- otherwise the icon and the name centre on the window and sit left of every row below
+// them. Before iOS 26 the column was genuinely narrower and these insets are zero, so this is the
+// identity there, as it is on any iPhone in portrait.
+- (CGRect)contentBounds {
+    UIEdgeInsets safe = self.safeAreaInsets;
+    return UIEdgeInsetsInsetRect(self.bounds, UIEdgeInsetsMake(0.0, safe.left, 0.0, safe.right));
+}
+
+// The safe area is what the sidebar's width arrives as, and it can change without the header's
+// own size changing -- the sidebar being toggled on an iPad leaves the table exactly as wide.
+- (void)safeAreaInsetsDidChange {
+    [super safeAreaInsetsDidChange];
+    [self setNeedsLayout];
+}
+
 - (CGSize)sizeThatFits:(CGSize)size {
-    CGFloat textWidth = MAX(size.width - 2.0 * kNUSideInset, 1.0);
+    UIEdgeInsets safe = self.safeAreaInsets;
+    CGFloat textWidth = MAX(size.width - safe.left - safe.right - 2.0 * kNUSideInset, 1.0);
     CGFloat height = kNUPadTop + kNUIconSide + kNUIconToName;
     height += [_nameLabel sizeThatFits:CGSizeMake(textWidth, CGFLOAT_MAX)].height;
     if (!_versionLabel.hidden)
@@ -189,36 +211,37 @@ static const CGFloat kNUIconPressScale = 0.95;
 
 - (void)layoutSubviews {
     [super layoutSubviews];
-    CGFloat width = self.bounds.size.width;
-    CGFloat textWidth = MAX(width - 2.0 * kNUSideInset, 1.0);
+    CGRect content = [self contentBounds];
+    CGFloat textWidth = MAX(CGRectGetWidth(content) - 2.0 * kNUSideInset, 1.0);
+    CGFloat textX = CGRectGetMinX(content) + kNUSideInset;
 
     // Bounds and centre rather than -setFrame:, and the labels below are placed from iconRect
     // rather than from the button's own frame: the press animation leaves a scale transform on
     // the button, and with one applied a frame is neither safe to set nor the rect the icon
     // occupies at rest — reading it back would walk the name and version up the header on every
     // press.
-    CGRect iconRect = CGRectMake((width - kNUIconSide) / 2.0, kNUPadTop, kNUIconSide, kNUIconSide);
+    CGRect iconRect = CGRectMake(CGRectGetMidX(content) - kNUIconSide / 2.0, kNUPadTop, kNUIconSide, kNUIconSide);
     _iconButton.bounds = CGRectMake(0.0, 0.0, iconRect.size.width, iconRect.size.height);
     _iconButton.center = CGPointMake(CGRectGetMidX(iconRect), CGRectGetMidY(iconRect));
 
     CGFloat y = CGRectGetMaxY(iconRect) + kNUIconToName;
     CGFloat nameHeight = [_nameLabel sizeThatFits:CGSizeMake(textWidth, CGFLOAT_MAX)].height;
-    _nameLabel.frame = CGRectMake(kNUSideInset, y, textWidth, nameHeight);
+    _nameLabel.frame = CGRectMake(textX, y, textWidth, nameHeight);
 
     if (_versionLabel.hidden) {
-        _versionLabel.frame = CGRectMake(kNUSideInset, CGRectGetMaxY(_nameLabel.frame), textWidth, 0.0);
+        _versionLabel.frame = CGRectMake(textX, CGRectGetMaxY(_nameLabel.frame), textWidth, 0.0);
         return;
     }
     y = CGRectGetMaxY(_nameLabel.frame) + kNUNameToVer;
     CGFloat versionHeight = [_versionLabel sizeThatFits:CGSizeMake(textWidth, CGFLOAT_MAX)].height;
-    _versionLabel.frame = CGRectMake(kNUSideInset, y, textWidth, versionHeight);
+    _versionLabel.frame = CGRectMake(textX, y, textWidth, versionHeight);
 }
 
 - (CGFloat)titleBottom {
     // Measured rather than read off the frame: the controller asks for this
     // before the first layout pass, to decide the navigation title's start state.
     if (!CGRectIsEmpty(_nameLabel.frame)) return CGRectGetMaxY(_nameLabel.frame);
-    CGFloat textWidth = MAX(self.bounds.size.width - 2.0 * kNUSideInset, 1.0);
+    CGFloat textWidth = MAX(CGRectGetWidth([self contentBounds]) - 2.0 * kNUSideInset, 1.0);
     return kNUPadTop + kNUIconSide + kNUIconToName +
            [_nameLabel sizeThatFits:CGSizeMake(textWidth, CGFLOAT_MAX)].height;
 }
