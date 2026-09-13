@@ -90,7 +90,7 @@ tweak wrote (settings and play history).
 
 ## Known issues
 
-- Spotify, YouTube and YouTube Music integrations are built against specific app versions
+- Spotify, YouTube, YouTube Music and SoundCloud integrations are built against specific app versions
   (see table above); an app update can silently break them until the tweak is
   updated.
 
