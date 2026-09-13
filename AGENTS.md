@@ -6,14 +6,14 @@
 
 An open-source iOS jailbreak tweak (Theos/Logos, Objective-C) that adds an
 "Up Next" row to the system now-playing UI — Lock Screen, Control Center and
-Dynamic Island — for Apple Music, Apple Podcasts, YouTube Music and Spotify on
-iOS 14.2 – 26. It is an on-device UI enhancement for the user's own jailbroken
+Dynamic Island — for Apple Music, Apple Podcasts, YouTube, YouTube Music,
+Spotify and SoundCloud on iOS 14.2 – 26 (SoundCloud itself needs iOS 16.4+). It is an on-device UI enhancement for the user's own jailbroken
 device: it customizes the now-playing interface by interoperating with Apple's
 private MediaRemote / MediaControls frameworks. The private-API interface
 declarations and version notes exist to make that UI integration line up across
 iOS versions.
 
-## Architecture (one dylib, seven processes)
+## Architecture (one dylib, eight processes)
 
 Two roles, decided per process in each hook file's `%ctor`:
 
@@ -26,7 +26,10 @@ Two roles, decided per process in each hook file's `%ctor`:
   is a mutable queue entry, while a standalone video leaves `YTQueueController`
   empty and the next-up comes from `YTAutoplayAutonavController`'s renderer,
   which can only be played, so the snapshot reports canSkip/canPrev off for it),
-  `NUSpotifyProvider` (com.spotify.client, SPT* facade). All subclass
+  `NUSpotifyProvider` (com.spotify.client, SPT* facade),
+  `NUSoundCloudProvider` (com.soundcloud.TouchApp — its Playback framework is
+  @objc-exposed, with a real `+sharedInstance` carrying the whole read surface,
+  so nothing has to be captured; the hooks only signal change). All subclass
   `NUProviderBase`. A provider
   reads its app's live queue, serves title/artist/artwork snapshots over IPC,
   and performs skip / play-now / previous through the app's own in-process API.
@@ -55,6 +58,7 @@ fallback. Canonical explanation at the top of `NUPrefs.h`.
 | `hooks/NUHooksSpringBoard.x` | Fails the system's own gestures while our row swipe is active — reads the cross-process touch flag (`NUDITouchGet`; set row-side by the `NUFlagPan` recognizer in NUNextUpRowView.m) |
 | `hooks/NUHooksTCC.x` | iOS ≤ 16 NSAppleMusicUsageDescription injection (`%group NUMediaTCC`) — without it queue reads get the process killed |
 | `hooks/NUHooks<App>Provider.x` | Thin per-app `%ctor` gates that start the matching provider |
+| `NUSoundCloudProvider.{h,m}` | SoundCloud. Reads via `+[Playback.PlaybackService sharedInstance]` (no capture hook needed). Ads/placeholders are real queue entries, so every read walks forward on `itemType == 1` (0 proxy / 1 track / 2 audioAd / 3 videoAd). Change comes from the app's NSNotifications and an `MPNowPlayingInfoCenter` hook, not from the Playback @objc hooks. `previous` uses the only @objc write there is (`-addWithItems:position:currentItem:uiComponent:`, matched by pointer identity); `skip` has no @objc path at all and goes through a `swiftcall` shim on `NewPlayQueueNextUp.removeItem(fromSection:row:)` — section `.next`(2)/`.autoplay`(3) only, and an out-of-range row TRAPS rather than throwing, so the section is proven non-empty first |
 | `NUHooksShared.{h,m}` | Process gates (`NUIsMusic()`, `NUIsDisplaySide()`, …), view/VC ancestry helpers, `NUCCLayoutRow` (CC row layout shared by 18/26) |
 | `NUShared.h` | Service names, notification names, snapshot dictionary keys, `NUApplySandbox()`, `NUDITouchSet/Get` |
 | `NUYouTubeShared.h` | The `YT*`/`YTI*` queue-item, renderer and queue-edit interfaces plus the text/artwork-URL helpers shared by the YouTube Music and YouTube providers — the two apps ship the same client stack, so only `YTQueueController` stays declared per provider |

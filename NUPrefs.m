@@ -93,12 +93,14 @@ void NUPrefsPublishState(void) {
     if (NUReadCF(@"enabledYouTubeMusic", YES, YES))         mask |= kNUStateAppYouTubeMusic;
     if (NUReadCF(@"enabledYouTube",    YES, YES))           mask |= kNUStateAppYouTube;
     if (NUReadCF(@"enabledSpotify",    YES, YES))           mask |= kNUStateAppSpotify;
+    if (NUReadCF(@"enabledSoundCloud", YES, YES))           mask |= kNUStateAppSoundCloud;
     if (NUReadCF(@"showLockScreen",    YES, YES))           mask |= kNUStateLockScreen;
     if (NUReadCF(@"showDynamicIsland", YES, YES))           mask |= kNUStateDynamicIsland;
     if (NUReadCF(@"showControlCenter", YES, YES))           mask |= kNUStateControlCenter;
     // Stamp every key this build knows into the known-keys mask (see kNUStateKnownShift in NUPrefs.h).
     mask |= (kNUStateMaster | kNUStateAppMusic | kNUStateAppPodcasts
              | kNUStateAppYouTubeMusic | kNUStateAppYouTube | kNUStateAppSpotify
+             | kNUStateAppSoundCloud
              | kNUStateLockScreen | kNUStateDynamicIsland
              | kNUStateControlCenter) << kNUStateKnownShift;
 

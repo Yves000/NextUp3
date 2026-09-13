@@ -49,6 +49,7 @@ artwork, so you always know what's coming and can act on it before it plays.
 | YouTube Music | full support, built against 9.28.4 |
 | YouTube | full support, built against 21.32.4. Shows the next queue entry (playlist / mix / "Add to queue"); a standalone video has no queue, so the autoplay suggestion is shown instead — that one can only be played, not skipped or re-ordered. Artwork is 16:9 rather than square |
 | Spotify | full support, built against 9.1.62 |
+| SoundCloud | full support, built against 8.75.0. iOS 16.4+ only (the app's own minimum). Ads and not-yet-loaded placeholders are stepped over, so a free account sees the next real track rather than an ad |
 
 ## Compatibility
 
@@ -97,12 +98,12 @@ tweak wrote (settings and play history).
 
 # For developers
 
-NextUp 3 is a Theos tweak. One dylib is injected into seven processes and behaves
+NextUp 3 is a Theos tweak. One dylib is injected into eight processes and behaves
 differently per process:
 
 - **Providers** (one per media app, inside `com.apple.Music`,
   `com.apple.podcasts`, `com.google.ios.youtubemusic`, `com.google.ios.youtube`,
-  `com.spotify.client`):
+  `com.spotify.client`, `com.soundcloud.TouchApp`):
   read that app's live queue, serve the current "next up" (title / artist /
   artwork) over IPC, and perform skip / play-now / previous using the app's own
   in-process queue API.
@@ -124,7 +125,7 @@ instant.
 | Path | What it is |
 |---|---|
 | `hooks/*.x` | Logos hooks, split per process / surface / iOS version — each with its own `%ctor` gate. `NUHooksLockScreen{14,15,18}.x`, `NUHooksControlCenter{Legacy,18,26}.x`, `NUHooksDynamicIsland{16,17}.x`, `NUHooksNowPlaying.x` (shared player plumbing), `NUHooksSpringBoard.x` (swipe-vs-system-gesture arbitration), `NUHooksTCC.x` (iOS ≤ 16 usage-description shim), plus one `NUHooks<App>Provider.x` per app |
-| `NU<App>Provider.{h,m}` | The five providers (`Music`, `Podcast`, `YouTubeMusic`, `YouTube`, `Spotify`), all on `NUProviderBase` |
+| `NU<App>Provider.{h,m}` | The six providers (`Music`, `Podcast`, `YouTubeMusic`, `YouTube`, `Spotify`, `SoundCloud`), all on `NUProviderBase` |
 | `NUYouTubeShared.h` | The `YT*`/`YTI*` queue-item and renderer interfaces plus the metadata/artwork-URL helpers shared by the two Google clients |
 | `NUNextUpManager.{h,m}` | Display side: source tracking, per-source LightMessaging client, snapshot state |
 | `NUNextUpRowView.{h,m}` | The row UI: artwork, labels, skip button, swipe carousel |

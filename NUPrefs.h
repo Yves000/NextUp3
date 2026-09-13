@@ -27,6 +27,7 @@
 #define kNUStateAppYouTubeMusic (1ULL << 6)  // "enabledYouTubeMusic"
 #define kNUStateAppSpotify     (1ULL << 7)   // "enabledSpotify"
 #define kNUStateAppYouTube     (1ULL << 8)   // "enabledYouTube"
+#define kNUStateAppSoundCloud  (1ULL << 9)   // "enabledSoundCloud"
 
 // Known-keys mask: bit (n + 32) mirrors value bit n and means "the publishing Settings
 // build knew this key"; a value bit whose known bit is 0 falls back to CFPreferences.
@@ -40,6 +41,7 @@ static inline uint64_t NUStateBitForKey(NSString *key) {
     if ([key isEqualToString:@"enabledYouTubeMusic"]) return kNUStateAppYouTubeMusic;
     if ([key isEqualToString:@"enabledYouTube"])     return kNUStateAppYouTube;
     if ([key isEqualToString:@"enabledSpotify"])    return kNUStateAppSpotify;
+    if ([key isEqualToString:@"enabledSoundCloud"]) return kNUStateAppSoundCloud;
     if ([key isEqualToString:@"showLockScreen"])    return kNUStateLockScreen;
     if ([key isEqualToString:@"showDynamicIsland"]) return kNUStateDynamicIsland;
     if ([key isEqualToString:@"showControlCenter"]) return kNUStateControlCenter;

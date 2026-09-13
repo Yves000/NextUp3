@@ -48,6 +48,7 @@ static inline void NULogWrite(const char *fmt, ...) {
 #define kNUServiceNameYouTubeMusic "com.yves.nextup3.svc.youtubemusic"
 #define kNUServiceNameYouTube      "com.yves.nextup3.svc.youtube"
 #define kNUServiceNameSpotify      "com.yves.nextup3.svc.spotify"
+#define kNUServiceNameSoundCloud   "com.yves.nextup3.svc.soundcloud"
 
 // Darwin notifications (no payload; just signals).
 // "changed" is SHARED by all providers → display: whichever provider's next-up
@@ -59,6 +60,8 @@ static inline void NULogWrite(const char *fmt, ...) {
 #define kNUSkipNotificationYouTubeMusic "com.yves.nextup3.skip.youtubemusic" // display → YTM provider: remove next track
 #define kNUSkipNotificationYouTube      "com.yves.nextup3.skip.youtube"      // display → YouTube provider: remove next video
 #define kNUSkipNotificationSpotify      "com.yves.nextup3.skip.spotify"      // display → Spotify provider: remove next track
+// SoundCloud removal is Swift-only; the provider reports canSkip = NO when its symbols don't resolve.
+#define kNUSkipNotificationSoundCloud "com.yves.nextup3.skip.soundcloud" // display → SoundCloud provider: remove next track
 // Play-previous: Music does the enqueue display-side (public MPMusicPlayer API), so it
 // needs no notification. Podcasts' enqueue API (MTUpNextController) is in-process, so the
 // display signals the Podcasts provider to re-queue the previous episode itself.
@@ -72,6 +75,9 @@ static inline void NULogWrite(const char *fmt, ...) {
 // exactly the "Play Next" semantic), so it takes the provider-side path as well. Registering this
 // name is also what flips -[NUNextUpManager canActionPrevious] off the adamID requirement.
 #define kNUPrevNotificationSpotify "com.yves.nextup3.prev.spotify" // display → Spotify provider: re-queue previous track
+// SoundCloud's insert IS @objc — the mutable queue's -addWithItems:position:currentItem:uiComponent:
+// — so 'previous' takes the provider-side path like Spotify's.
+#define kNUPrevNotificationSoundCloud "com.yves.nextup3.prev.soundcloud" // display → SoundCloud provider: re-queue previous track
 // Tap the next-up cover to play it now. Music maps the MediaRemote NextTrack command to
 // "advance to the next queued item" — but iOS 18 Podcasts maps it to a 30s skip, so the
 // display signals the Podcasts (MPC) provider to jump the queue to the next episode instead.
@@ -82,6 +88,10 @@ static inline void NULogWrite(const char *fmt, ...) {
 // Same for the main YouTube app — and there the shown item may be an autoplay suggestion, which
 // the MediaRemote NextTrack command would not reach at all.
 #define kNUJumpNotificationYouTube "com.yves.nextup3.jump.youtube" // display → YouTube provider: play the next video now
+// SoundCloud registers a nextTrackCommand, but the MediaRemote command does not reliably advance
+// its play queue and fires no delegate callback — the row would go stale. Jump the queue directly
+// instead (-[PlaybackService jumpToItem:withInteraction:]), same as YTM.
+#define kNUJumpNotificationSoundCloud "com.yves.nextup3.jump.soundcloud" // display → SoundCloud provider: play the next track now
 
 // User preferences live in NUPrefs.h (domain + notify-state token). Kept out of this IPC
 // header so the Settings bundle can include NUPrefs.h without pulling in the mach stack.

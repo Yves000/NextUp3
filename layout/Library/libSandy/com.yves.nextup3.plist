@@ -19,6 +19,7 @@
 		<string>com.google.ios.youtube</string>
 		<string>com.google.ios.youtubemusic</string>
 		<string>com.spotify.client</string>
+		<string>com.soundcloud.TouchApp</string>
 	</array>
 	<key>Extensions</key>
 	<array>
@@ -101,6 +102,22 @@
 			<string>com.apple.security.exception.mach-lookup.global-name</string>
 			<key>mach_name</key>
 			<string>com.yves.nextup3.svc.spotify</string>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>mach</string>
+			<key>extension_class</key>
+			<string>com.apple.security.exception.mach-register.global-name</string>
+			<key>mach_name</key>
+			<string>com.yves.nextup3.svc.soundcloud</string>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>mach</string>
+			<key>extension_class</key>
+			<string>com.apple.security.exception.mach-lookup.global-name</string>
+			<key>mach_name</key>
+			<string>com.yves.nextup3.svc.soundcloud</string>
 		</dict>
 	</array>
 </dict>
